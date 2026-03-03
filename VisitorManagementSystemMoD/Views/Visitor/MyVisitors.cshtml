@@ -1,0 +1,321 @@
+@model IEnumerable<VisitorManagementSystemMoD.Models.Visitor>
+@{
+    ViewData["Title"] = "My Visitors";
+    var status = ViewBag.Status as string ?? "All";
+    var entries = ViewBag.Entries ?? 10;
+    var totalCount = ViewBag.TotalCount ?? 0;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="display-6 fw-bold">My Visitors</h1>
+        <p class="text-muted">View and manage your visitor requests</p>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center gap-2">
+            <label class="mb-0 text-muted small">Show</label>
+            <select onchange="updateEntries(this.value)" class="form-select form-select-sm" style="width: auto;">
+                <option value="10" selected="@(entries == 10)">10</option>
+                <option value="25" selected="@(entries == 25)">25</option>
+                <option value="50" selected="@(entries == 50)">50</option>
+                <option value="100" selected="@(entries == 100)">100</option>
+                <option value="-1" selected="@(entries == -1)">All</option>
+            </select>
+            <span class="text-muted small">entries (Total: @totalCount)</span>
+        </div>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="fas fa-user-plus me-2"></i>Create New Request
+        </a>
+    </div>
+</div>
+
+<!-- Filter Tabs -->
+<ul class="nav nav-pills mb-4">
+    <li class="nav-item">
+        <a class="nav-link @(status == "All" ? "active" : "")" asp-action="MyVisitors" asp-route-status="All">
+            All (@Model.Count())
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(status == "Pending" ? "active" : "")" asp-action="MyVisitors" asp-route-status="Pending">
+            Pending (@Model.Count(v => v.Status == "Pending"))
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(status == "Approved" ? "active" : "")" asp-action="MyVisitors" asp-route-status="Approved">
+            Approved (@Model.Count(v => v.Status == "Approved"))
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(status == "Rejected" ? "active" : "")" asp-action="MyVisitors" asp-route-status="Rejected">
+            Rejected (@Model.Count(v => v.Status == "Rejected"))
+        </a>
+    </li>
+</ul>
+
+<!-- Visitors List -->
+@if (Model.Any())
+{
+    <div class="row g-3">
+        @foreach (var visitor in Model)
+        {
+            <div class="col-12">
+                <div class="card visitor-card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center gap-3">
+                            <!-- Avatar -->
+                            <div class="flex-shrink-0">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width: 50px; height: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                    @{
+                                        var initials = string.Join("", visitor.Name.Split(' ').Select(n => n.FirstOrDefault()));
+                                    }
+                                    @initials
+                                </div>
+                            </div>
+
+                            <!-- Details -->
+                            <div class="flex-grow-1" style="cursor: pointer;" onclick="viewVisitorDetails(@visitor.Id)">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <h5 class="mb-0">@visitor.Name</h5>
+                                    <span class="badge badge-@visitor.Status.ToLower()">@visitor.Status</span>
+                                    @if (visitor.HasVehicle)
+                                    {
+                                        <span class="badge bg-secondary"><i class="fas fa-car me-1"></i>Vehicle</span>
+                                    }
+                                    @if (visitor.CheckInTime.HasValue && !visitor.CheckOutTime.HasValue)
+                                    {
+                                        <span class="badge bg-info">Inside</span>
+                                    }
+                                </div>
+                                <div class="d-flex gap-4 text-muted small">
+                                    <span><i class="fas fa-user me-1"></i>Host: @visitor.EmployeeName</span>
+                                    <span><i class="fas fa-clock me-1"></i>@visitor.ExpectedTime.ToString("MMM dd, h:mm tt")</span>
+                                    @if (visitor.HasVehicle && !string.IsNullOrEmpty(visitor.VehicleNumber))
+                                    {
+                                        <span><i class="fas fa-car me-1"></i>@visitor.VehicleNumber</span>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons (Only show if visitor hasn't checked in) -->
+                            <div class="flex-shrink-0">
+                                @if (!visitor.CheckInTime.HasValue)
+                                {
+                                    <div class="btn-group" role="group">
+                                        <a asp-action="Edit" asp-route-id="@visitor.Id" class="btn btn-sm btn-outline-primary" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteVisitor(@visitor.Id, '@visitor.Name')" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <i class="fas fa-chevron-right text-primary"></i>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No visitors found</h5>
+            <p class="text-muted">Create your first visitor request to get started</p>
+            <a asp-action="Create" class="btn btn-primary mt-3">
+                <i class="fas fa-user-plus me-2"></i>Create Visitor Request
+            </a>
+        </div>
+    </div>
+}
+
+<!-- Visitor Detail Modal -->
+<div class="modal fade" id="visitorDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Visitor Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalContent">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function updateEntries(entries) {
+            const params = new URLSearchParams(window.location.search);
+            params.set('entries', entries);
+            window.location.search = params.toString();
+        }
+
+        function viewVisitorDetails(id) {
+            const modal = new bootstrap.Modal(document.getElementById('visitorDetailModal'));
+            modal.show();
+
+            fetch(`/Visitor/Details?id=${id}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        const visitor = data.visitor;
+                        let html = `
+                            <div class="row g-4">
+                                <div class="col-12">
+                                    <div class="d-flex align-items-start gap-3">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width: 64px; height: 64px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); font-size: 24px;">
+                                            ${visitor.name.split(' ').map(n => n[0]).join('')}
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h3>${visitor.name}</h3>
+                                            <div class="d-flex gap-2">
+                                                <span class="badge badge-${visitor.status.toLowerCase()}">${visitor.status}</span>
+                                                ${visitor.hasVehicle ? '<span class="badge bg-secondary"><i class="fas fa-car me-1"></i>Vehicle</span>' : ''}
+                                                ${visitor.checkInTime && !visitor.checkOutTime ? '<span class="badge bg-info">Currently Inside</span>' : ''}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-12"><hr/></div>
+
+                                <div class="col-md-6">
+                                    <small class="text-muted">CNIC</small>
+                                    <p class="mb-0 fw-bold">${visitor.cnic}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted">Phone</small>
+                                    <p class="mb-0 fw-bold">${visitor.phone}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted">Host</small>
+                                    <p class="mb-0 fw-bold">${visitor.employeeName}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted">Expected Time</small>
+                                    <p class="mb-0 fw-bold">${new Date(visitor.expectedTime).toLocaleString()}</p>
+                                </div>
+                                <div class="col-12">
+                                    <small class="text-muted">Purpose</small>
+                                    <p class="mb-0 fw-bold">${visitor.purpose}</p>
+                                </div>
+                        `;
+
+                        if (visitor.hasVehicle) {
+                            html += `
+                                <div class="col-12"><hr/></div>
+                                <div class="col-md-6">
+                                    <small class="text-muted">Vehicle Number</small>
+                                    <p class="mb-0 fw-bold">${visitor.vehicleNumber || 'N/A'}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted">Vehicle Type</small>
+                                    <p class="mb-0 fw-bold">${visitor.vehicleType || 'N/A'}</p>
+                                </div>
+                            `;
+                        }
+
+                        if (visitor.checkInTime || visitor.checkOutTime) {
+                            html += `<div class="col-12"><hr/></div>`;
+                            if (visitor.checkInTime) {
+                                html += `
+                                    <div class="col-md-6">
+                                        <small class="text-muted"><i class="fas fa-sign-in-alt me-1"></i>Check-in Time</small>
+                                        <p class="mb-0 fw-bold text-success">${new Date(visitor.checkInTime).toLocaleString()}</p>
+                                    </div>
+                                `;
+                            }
+                            if (visitor.checkOutTime) {
+                                html += `
+                                    <div class="col-md-6">
+                                        <small class="text-muted"><i class="fas fa-sign-out-alt me-1"></i>Check-out Time</small>
+                                        <p class="mb-0 fw-bold text-secondary">${new Date(visitor.checkOutTime).toLocaleString()}</p>
+                                    </div>
+                                `;
+                            }
+                        }
+
+                        if (visitor.approvedByName) {
+                            html += `
+                                <div class="col-12">
+                                    <div class="alert alert-success">
+                                        <strong><i class="fas fa-check-circle me-2"></i>Approved</strong><br/>
+                                        Approved by ${visitor.approvedByName} on ${visitor.approvedAt ? new Date(visitor.approvedAt).toLocaleString() : 'N/A'}
+                                    </div>
+                                </div>
+                            `;
+                        }
+
+                        if (visitor.rejectionReason) {
+                            html += `
+                                <div class="col-12">
+                                    <div class="alert alert-danger">
+                                        <strong><i class="fas fa-times-circle me-2"></i>Rejected</strong><br/>
+                                        Reason: ${visitor.rejectionReason}
+                                    </div>
+                                </div>
+                            `;
+                        }
+
+                        html += `</div>`;
+                        document.getElementById('modalContent').innerHTML = html;
+                    } else {
+                        document.getElementById('modalContent').innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>${data.message || 'Unable to load visitor details'}</div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching visitor details:', error);
+                    document.getElementById('modalContent').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            <strong>Error loading visitor details</strong><br/>
+                            <small>Please try again. If the problem persists, contact support.</small>
+                        </div>
+                    `;
+                });
+        }
+
+        function deleteVisitor(id, name) {
+            if (confirm(`Are you sure you want to delete the visitor request for ${name}?\n\nThis action cannot be undone.`)) {
+                fetch('/Visitor/Delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ id: id })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Visitor deleted successfully!');
+                            location.reload();
+                        } else {
+                            alert('Error: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error deleting visitor:', error);
+                        alert('Error deleting visitor. Please try again.');
+                    });
+            }
+        }
+    </script>
+}

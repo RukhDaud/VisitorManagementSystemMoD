@@ -1,0 +1,421 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Visitor Management System</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        :root {
+            --primary-color: #10b981;
+            --secondary-color: #34d399;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-600: #4b5563;
+            --gray-900: #111827;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .navbar-custom {
+            background: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .navbar-brand {
+            color: #111827 !important;
+            font-weight: 600;
+            font-size: 1.25rem;
+        }
+
+        .nav-link {
+            color: #4b5563 !important;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            color: #10b981 !important;
+            background: #f0fdf4;
+            border-radius: 6px;
+        }
+
+        .btn-logout {
+            background: white;
+            color: #4b5563;
+            border: 1px solid #e5e7eb;
+            transition: all 0.3s ease;
+        }
+
+        .btn-logout:hover {
+            background: #f9fafb;
+            color: #111827;
+            border-color: #d1d5db;
+        }
+
+        .dropdown-menu {
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .dropdown-item {
+            color: #4b5563;
+        }
+
+        .dropdown-item:hover {
+            background: #f0fdf4;
+            color: #10b981;
+        }
+
+        .navbar-toggler {
+            border-color: #e5e7eb;
+        }
+
+        .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(75, 85, 99, 1)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+        }
+
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+        }
+
+        .badge-pending {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-approved {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-rejected {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .kpi-card {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .alert-dismissible {
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    @if (Context.Session.GetInt32("UserId") != null)
+    {
+        <nav class="navbar navbar-expand-lg navbar-custom mb-4">
+            <div class="container-fluid">
+                <a class="navbar-brand" asp-controller="Dashboard" asp-action="Index">
+                    <i class="fas fa-users me-2"></i>Visitor Management System
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+
+                        @{
+                            var userRole = Context.Session.GetString("UserRole");
+                        }
+
+                        @if (userRole == "Employee")
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Visitor" asp-action="Create">
+                                    <i class="fas fa-user-plus me-1"></i>Create Request
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Visitor" asp-action="MyVisitors">
+                                    <i class="fas fa-list me-1"></i>My Visitors
+                                </a>
+                            </li>
+                        }
+
+                        @if (userRole == "Security Officer" || userRole == "Admin" || userRole == "SuperAdmin")
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Visitor" asp-action="AllVisitors">
+                                    <i class="fas fa-users me-1"></i>All Visitors
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Dashboard" asp-action="Audit">
+                                    <i class="fas fa-clipboard-list me-1"></i>Audit
+                                </a>
+                            </li>
+                        }
+
+                        @if (userRole == "Reception")
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Visitor" asp-action="GateVisitors">
+                                    <i class="fas fa-door-open me-1"></i>Visitors
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                    <ul class="navbar-nav ms-auto">
+                        <!-- Bell Icon for Alerts -->
+                        <li class="nav-item dropdown me-2">
+                            <a class="nav-link position-relative" href="#" id="alertBellDropdown" role="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                                <i class="fas fa-bell"></i>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="alertBadge" style="display:none; font-size: 0.6rem;">
+                                    0
+                                </span>
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-end shadow-lg p-0" style="width: 360px; max-height: 480px; border-radius: 12px;" id="alertDropdownMenu">
+                                <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom" style="background: #f8f9fa; border-radius: 12px 12px 0 0;">
+                                    <h6 class="mb-0 fw-semibold"><i class="fas fa-bell me-1 text-warning"></i> Alerts</h6>
+                                    <span class="badge bg-primary rounded-pill" id="alertDropdownCount">0</span>
+                                </div>
+                                <div id="alertDropdownList" style="max-height: 340px; overflow-y: auto;">
+                                    <div class="text-center py-4 text-muted">
+                                        <i class="fas fa-check-circle fa-2x mb-2 d-block" style="color: #d1d5db;"></i>
+                                        <small>No active alerts</small>
+                                    </div>
+                                </div>
+                                @if (userRole == "SuperAdmin" || userRole == "Security Officer")
+                                {
+                                    <div class="border-top px-3 py-2 text-center" style="background: #f8f9fa; border-radius: 0 0 12px 12px;">
+                                        <a href="@Url.Action("Administration", "Dashboard")#alerts-section" class="text-decoration-none small fw-semibold text-primary">
+                                            <i class="fas fa-cog me-1"></i>Manage Alerts
+                                        </a>
+                                    </div>
+                                }
+                            </div>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user-circle me-1"></i>@Context.Session.GetString("UserName")
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>@Context.Session.GetString("UserRole")</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Account" asp-action="Logout">
+                                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    }
+
+    <div class="container-fluid px-4">
+        @if (IsSectionDefined("Breadcrumb"))
+        {
+            <div class="mb-3">
+                @RenderSection("Breadcrumb", required: false)
+            </div>
+        }
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <main role="main" class="pb-4">
+            @RenderBody()
+        </main>
+    </div>
+
+    <!-- Today's Alerts Popup Modal (shown on login) -->
+    @{
+        var justLoggedIn = TempData["JustLoggedIn"] != null;
+    }
+    @if (justLoggedIn)
+    {
+        <div class="modal fade" id="todayAlertsModal" tabindex="-1" aria-labelledby="todayAlertsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content" style="border-radius: 16px; border: none; overflow: hidden;">
+                    <div class="modal-header border-0 text-white" style="background: linear-gradient(135deg, #f59e0b, #d97706); padding: 1.25rem 1.5rem;">
+                        <h5 class="modal-title" id="todayAlertsModalLabel">
+                            <i class="fas fa-bell me-2"></i>Today's Alerts
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-0" id="todayAlertsBody">
+                        <div class="text-center py-5 text-muted">
+                            <i class="fas fa-spinner fa-spin fa-2x mb-3 d-block"></i>
+                            <small>Loading alerts...</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 bg-light" style="border-radius: 0 0 16px 16px;">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 8px;">
+                            <i class="fas fa-times me-1"></i>Dismiss
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        // Global alert bell functionality
+        function loadAlertBell() {
+            $.get('@Url.Action("GetActiveAlerts", "Alert")')
+            .done(function (res) {
+                if (!res.success) return;
+                var badge = $('#alertBadge');
+                var list = $('#alertDropdownList');
+                var countEl = $('#alertDropdownCount');
+
+                if (res.totalActive > 0) {
+                    badge.text(res.totalActive > 99 ? '99+' : res.totalActive).show();
+                } else {
+                    badge.hide();
+                }
+                countEl.text(res.totalActive);
+
+                if (res.alerts.length === 0) {
+                    list.html('<div class="text-center py-4 text-muted"><i class="fas fa-check-circle fa-2x mb-2 d-block" style="color: #d1d5db;"></i><small>No active alerts</small></div>');
+                    return;
+                }
+
+                var html = '';
+                res.alerts.forEach(function (a) {
+                    var iconClass = a.priority === 'Critical' ? 'fa-exclamation-circle text-danger' :
+                                    a.priority === 'Warning' ? 'fa-exclamation-triangle text-warning' :
+                                    'fa-info-circle text-primary';
+                    var bgClass = a.priority === 'Critical' ? 'border-start border-danger border-3' :
+                                  a.priority === 'Warning' ? 'border-start border-warning border-3' :
+                                  'border-start border-primary border-3';
+                    html += '<div class="px-3 py-2 border-bottom ' + bgClass + '" style="cursor:default;">' +
+                            '<div class="d-flex align-items-start gap-2">' +
+                            '<i class="fas ' + iconClass + ' mt-1"></i>' +
+                            '<div class="flex-grow-1">' +
+                            '<p class="mb-0 small fw-semibold">' + a.title + '</p>' +
+                            '<p class="mb-0 text-muted" style="font-size:0.75rem;">' + a.message.substring(0, 80) + (a.message.length > 80 ? '...' : '') + '</p>' +
+                            '<div class="d-flex justify-content-between mt-1">' +
+                            '<span class="text-muted" style="font-size:0.65rem;"><i class="fas fa-user me-1"></i>' + a.createdByName + '</span>' +
+                            '<span class="text-muted" style="font-size:0.65rem;">' + a.timeAgo + '</span>' +
+                            '</div></div></div></div>';
+                });
+                list.html(html);
+            })
+            .fail(function (xhr) {
+                console.error('Failed to load alerts:', xhr.status, xhr.responseText);
+            });
+        }
+
+        $(document).ready(function () {
+            loadAlertBell();
+            // Refresh every 60 seconds
+            setInterval(loadAlertBell, 60000);
+        });
+
+        @if (justLoggedIn)
+        {
+            <text>
+            // Fetch and display today's alerts on login
+            function loadTodayAlertsPopup() {
+                $.get('@Url.Action("GetTodayAlerts", "Alert")')
+                .done(function (res) {
+                    if (!res.success || res.count === 0) return;
+
+                    var body = $('#todayAlertsBody');
+                    var html = '<div class="px-3 py-2 bg-light border-bottom d-flex justify-content-between align-items-center">' +
+                               '<span class="fw-semibold text-muted small"><i class="fas fa-calendar-day me-1"></i>' + new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + '</span>' +
+                               '<span class="badge bg-warning text-dark rounded-pill">' + res.count + ' alert' + (res.count > 1 ? 's' : '') + '</span></div>';
+                    html += '<div style="max-height: 400px; overflow-y: auto;">';
+
+                    res.alerts.forEach(function (a) {
+                        var iconClass = a.priority === 'Critical' ? 'fa-exclamation-circle text-danger' :
+                                        a.priority === 'Warning' ? 'fa-exclamation-triangle text-warning' :
+                                        'fa-info-circle text-primary';
+                        var borderClass = a.priority === 'Critical' ? 'border-danger' :
+                                          a.priority === 'Warning' ? 'border-warning' :
+                                          'border-primary';
+                        var bgClass = a.priority === 'Critical' ? 'rgba(239,68,68,0.05)' :
+                                      a.priority === 'Warning' ? 'rgba(245,158,11,0.05)' :
+                                      'rgba(59,130,246,0.05)';
+                        var priorityBadge = a.priority === 'Critical' ? '<span class="badge bg-danger rounded-pill" style="font-size:0.65rem;">Critical</span>' :
+                                            a.priority === 'Warning' ? '<span class="badge bg-warning text-dark rounded-pill" style="font-size:0.65rem;">Warning</span>' :
+                                            '<span class="badge bg-primary rounded-pill" style="font-size:0.65rem;">Info</span>';
+                        var categoryBadge = '<span class="badge bg-light text-secondary rounded-pill ms-1" style="font-size:0.65rem;">' + a.category + '</span>';
+
+                        html += '<div class="px-4 py-3 border-bottom border-start border-3 ' + borderClass + '" style="background:' + bgClass + ';">' +
+                                '<div class="d-flex align-items-start gap-3">' +
+                                '<div class="mt-1"><i class="fas ' + iconClass + ' fa-lg"></i></div>' +
+                                '<div class="flex-grow-1">' +
+                                '<div class="d-flex align-items-center gap-2 mb-1">' +
+                                '<h6 class="mb-0 fw-semibold">' + a.title + '</h6>' +
+                                priorityBadge + categoryBadge +
+                                '</div>' +
+                                '<p class="mb-1 text-muted small">' + a.message + '</p>' +
+                                '<div class="d-flex gap-3">' +
+                                '<span class="text-muted" style="font-size:0.7rem;"><i class="fas fa-user me-1"></i>' + a.createdByName + '</span>' +
+                                '<span class="text-muted" style="font-size:0.7rem;"><i class="fas fa-clock me-1"></i>' + a.timeAgo + '</span>' +
+                                '</div></div></div></div>';
+                    });
+
+                    html += '</div>';
+                    body.html(html);
+
+                    var modal = new bootstrap.Modal(document.getElementById('todayAlertsModal'));
+                    modal.show();
+                })
+                .fail(function (xhr) {
+                    console.error('Failed to load today alerts:', xhr.status, xhr.responseText);
+                });
+            }
+
+            $(document).ready(function () {
+                loadTodayAlertsPopup();
+            });
+            </text>
+        }
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,122 @@
+@model VisitorManagementSystemMoD.Models.ViewModels.UserViewModel
+@{
+    ViewData["Title"] = "Create User";
+}
+
+@section Breadcrumb {
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="@Url.Action("Index", "Dashboard")"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="@Url.Action("Administration", "Dashboard")"><i class="fas fa-cogs"></i> Administration</a></li>
+            <li class="breadcrumb-item"><a href="@Url.Action("Index", "UserManagement")">User Management</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Create User</li>
+        </ol>
+    </nav>
+}
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="fas fa-user-plus me-2 text-primary"></i>Create New User</h2>
+        <p class="text-muted mb-0 small">Add a new user to the system</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 offset-lg-2">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <form asp-action="Create" method="post">
+
+                    <!-- Personal Info Section -->
+                    <h6 class="fw-semibold text-muted text-uppercase mb-3" style="font-size:0.7rem;letter-spacing:0.5px;">
+                        <i class="fas fa-user me-1"></i>Personal Information
+                    </h6>
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Name" class="form-label small fw-semibold">Full Name <span class="text-danger">*</span></label>
+                            <input asp-for="Name" class="form-control form-control-sm" placeholder="Enter full name" />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Username" class="form-label small fw-semibold">Username <span class="text-danger">*</span></label>
+                            <input asp-for="Username" class="form-control form-control-sm" placeholder="Enter username" />
+                            <span asp-validation-for="Username" class="text-danger small"></span>
+                            <small class="form-text text-muted">Used for login — must be unique</small>
+                        </div>
+                    </div>
+
+                    <!-- Security Section -->
+                    <h6 class="fw-semibold text-muted text-uppercase mb-3" style="font-size:0.7rem;letter-spacing:0.5px;">
+                        <i class="fas fa-lock me-1"></i>Security
+                    </h6>
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Password" class="form-label small fw-semibold">Password <span class="text-danger">*</span></label>
+                            <input asp-for="Password" type="password" class="form-control form-control-sm" placeholder="Enter password" />
+                            <span asp-validation-for="Password" class="text-danger small"></span>
+                            <small class="form-text text-muted">Minimum 6 characters</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="ConfirmPassword" class="form-label small fw-semibold">Confirm Password <span class="text-danger">*</span></label>
+                            <input asp-for="ConfirmPassword" type="password" class="form-control form-control-sm" placeholder="Confirm password" />
+                            <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <!-- Role & Department Section -->
+                    <h6 class="fw-semibold text-muted text-uppercase mb-3" style="font-size:0.7rem;letter-spacing:0.5px;">
+                        <i class="fas fa-id-badge me-1"></i>Role & Access
+                    </h6>
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="RoleId" class="form-label small fw-semibold">Role <span class="text-danger">*</span></label>
+                            <select asp-for="RoleId" asp-items="ViewBag.Roles" class="form-select form-select-sm">
+                                <option value="">-- Select Role --</option>
+                            </select>
+                            <span asp-validation-for="RoleId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="DepartmentId" class="form-label small fw-semibold">Department</label>
+                            <select asp-for="DepartmentId" asp-items="ViewBag.Departments" class="form-select form-select-sm">
+                                <option value="">-- Select Department (Optional) --</option>
+                            </select>
+                            <span asp-validation-for="DepartmentId" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="mb-4 p-3 rounded" style="background:#f8f9fc;">
+                        <div class="form-check form-switch">
+                            <input asp-for="IsActive" class="form-check-input" type="checkbox" role="switch" />
+                            <label asp-for="IsActive" class="form-check-label small fw-semibold">
+                                Active <span class="fw-normal text-muted">— User can login to the system</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div asp-validation-summary="All" class="text-danger small mb-3"></div>
+
+                    <!-- Actions -->
+                    <div class="d-flex justify-content-end gap-2 pt-2 border-top">
+                        <a href="@Url.Action("Index", "UserManagement")" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-sm btn-primary">
+                            <i class="fas fa-save me-1"></i>Create User
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="alert mt-3 small border-0 shadow-sm" style="background:#eff6ff;color:#1e40af;">
+            <i class="fas fa-info-circle me-1"></i> <strong>Note:</strong>
+            Username must be unique. User must be assigned a role. Department is optional. Uncheck "Active" to prevent login.
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

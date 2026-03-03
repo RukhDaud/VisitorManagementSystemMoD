@@ -1,0 +1,253 @@
+@model IEnumerable<VisitorManagementSystemMoD.Models.Visitor>
+@{
+    ViewData["Title"] = ViewBag.GateName;
+    var gateName = ViewBag.GateName as string;
+    var entries = ViewBag.Entries ?? 10;
+    var totalCount = ViewBag.TotalCount ?? 0;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="display-6 fw-bold">@gateName</h1>
+        <p class="text-muted">Manage visitor check-ins and check-outs</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <label class="mb-0 text-muted small">Show</label>
+        <select onchange="updateEntries(this.value)" class="form-select form-select-sm" style="width: auto;">
+            <option value="10" selected="@(entries == 10)">10</option>
+            <option value="25" selected="@(entries == 25)">25</option>
+            <option value="50" selected="@(entries == 50)">50</option>
+            <option value="100" selected="@(entries == 100)">100</option>
+            <option value="-1" selected="@(entries == -1)">All</option>
+        </select>
+        <span class="text-muted small">entries (Total: @totalCount)</span>
+    </div>
+</div>
+
+@{
+    var awaitingCheckIn = Model.Where(v => !v.CheckInTime.HasValue).ToList();
+    var currentlyInside = Model.Where(v => v.CheckInTime.HasValue && !v.CheckOutTime.HasValue).ToList();
+    var completed = Model.Where(v => v.CheckOutTime.HasValue).ToList();
+}
+
+@if (Model.Any())
+{
+    <!-- Awaiting Check-In Section -->
+    @if (awaitingCheckIn.Any())
+    {
+        <div class="card mb-4">
+            <div class="card-header bg-warning bg-opacity-10 border-warning">
+                <h5 class="mb-0"><i class="fas fa-clock me-2 text-warning"></i>Awaiting Check-In (@awaitingCheckIn.Count())</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                @foreach (var visitor in awaitingCheckIn)
+                {
+                    var initials1 = string.Join("", visitor.Name.Split(' ').Select(n => n.FirstOrDefault()));
+                    <div class="list-group-item">
+                        <div class="d-flex align-items-center gap-3">
+                            <!-- Avatar -->
+                            <div class="flex-shrink-0">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width: 50px; height: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                    @initials1
+                                </div>
+                            </div>
+
+                            <!-- Details -->
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <h6 class="mb-0 fw-bold">@visitor.Name</h6>
+                                    <span class="badge bg-warning text-dark">Awaiting</span>
+                                    @if (visitor.HasVehicle)
+                                    {
+                                        <span class="badge bg-info"><i class="fas fa-car me-1"></i>@visitor.VehicleNumber</span>
+                                    }
+                                </div>
+                                <div class="d-flex gap-4 text-muted small">
+                                    <span><i class="fas fa-user me-1"></i>Host: @visitor.EmployeeName</span>
+                                    <span><i class="fas fa-clock me-1"></i>Expected: @visitor.ExpectedTime.ToString("MMM dd, h:mm tt")</span>
+                                    <span><i class="fas fa-id-card me-1"></i>@visitor.CNIC</span>
+                                </div>
+                            </div>
+
+                            <!-- Check-In Button -->
+                            <div class="flex-shrink-0">
+                                <button type="button" class="btn btn-primary" onclick="checkInVisitor(@visitor.Id, '@visitor.Name')">
+                                    <i class="fas fa-sign-in-alt me-1"></i>Check In
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Currently Inside Section -->
+    @if (currentlyInside.Any())
+    {
+        <div class="card mb-4">
+            <div class="card-header bg-success bg-opacity-10 border-success">
+                <h5 class="mb-0"><i class="fas fa-user-check me-2 text-success"></i>Currently Inside (@currentlyInside.Count())</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                @foreach (var visitor in currentlyInside)
+                {
+                    var initials2 = string.Join("", visitor.Name.Split(' ').Select(n => n.FirstOrDefault()));
+                    <div class="list-group-item">
+                        <div class="d-flex align-items-center gap-3">
+                            <!-- Avatar -->
+                            <div class="flex-shrink-0">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width: 50px; height: 50px; background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                                    @initials2
+                                </div>
+                            </div>
+
+                            <!-- Details -->
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <h6 class="mb-0 fw-bold">@visitor.Name</h6>
+                                    <span class="badge bg-success">Inside</span>
+                                    @if (visitor.HasVehicle)
+                                    {
+                                        <span class="badge bg-info"><i class="fas fa-car me-1"></i>@visitor.VehicleNumber</span>
+                                    }
+                                </div>
+                                <div class="d-flex gap-4 text-muted small">
+                                    <span><i class="fas fa-user me-1"></i>Host: @visitor.EmployeeName</span>
+                                    <span><i class="fas fa-sign-in-alt me-1 text-success"></i>Checked In: @visitor.CheckInTime!.Value.ToString("h:mm tt")</span>
+                                    <span><i class="fas fa-id-card me-1"></i>@visitor.CNIC</span>
+                                </div>
+                            </div>
+
+                            <!-- Check-Out Button -->
+                            <div class="flex-shrink-0">
+                                <button type="button" class="btn btn-outline-secondary" onclick="checkOutVisitor(@visitor.Id, '@visitor.Name')">
+                                    <i class="fas fa-sign-out-alt me-1"></i>Check Out
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Completed Section -->
+    @if (completed.Any())
+    {
+        <div class="card">
+            <div class="card-header bg-secondary bg-opacity-10 border-secondary">
+                <h5 class="mb-0"><i class="fas fa-check-circle me-2 text-secondary"></i>Completed (@completed.Count())</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                @foreach (var visitor in completed)
+                {
+                    var initials3 = string.Join("", visitor.Name.Split(' ').Select(n => n.FirstOrDefault()));
+                    <div class="list-group-item">
+                        <div class="d-flex align-items-center gap-3">
+                            <!-- Avatar -->
+                            <div class="flex-shrink-0">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width: 50px; height: 50px; background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);">
+                                    @initials3
+                                </div>
+                            </div>
+
+                            <!-- Details -->
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <h6 class="mb-0 fw-bold">@visitor.Name</h6>
+                                    <span class="badge bg-secondary">Completed</span>
+                                    @if (visitor.HasVehicle)
+                                    {
+                                        <span class="badge bg-info"><i class="fas fa-car me-1"></i>@visitor.VehicleNumber</span>
+                                    }
+                                </div>
+                                <div class="d-flex gap-4 text-muted small">
+                                    <span><i class="fas fa-user me-1"></i>Host: @visitor.EmployeeName</span>
+                                    <span><i class="fas fa-sign-in-alt me-1"></i>In: @visitor.CheckInTime!.Value.ToString("h:mm tt")</span>
+                                    <span><i class="fas fa-sign-out-alt me-1"></i>Out: @visitor.CheckOutTime!.Value.ToString("h:mm tt")</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}
+else
+{
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-door-open fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No visitors assigned</h5>
+            <p class="text-muted">Approved visitors for this gate will appear here</p>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        function updateEntries(entries) {
+            const params = new URLSearchParams(window.location.search);
+            params.set('entries', entries);
+            window.location.search = params.toString();
+        }
+
+        function checkInVisitor(id, name) {
+            if (confirm(`Check in ${name}?`)) {
+                console.log('Checking in visitor ID:', id); // Debug log
+                fetch('/Visitor/CheckIn', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id })
+                })
+                    .then(response => {
+                        console.log('Check-in response status:', response.status); // Debug log
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Check-in response data:', data); // Debug log
+                        if (data.success) {
+                            alert('✅ Visitor checked in successfully!');
+                            location.reload();
+                        } else {
+                            alert('❌ Error: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Check-in error:', error);
+                        alert('❌ Error checking in visitor: ' + error.message);
+                    });
+            }
+        }
+
+        function checkOutVisitor(id, name) {
+            if (confirm(`Check out ${name}?`)) {
+                console.log('Checking out visitor ID:', id); // Debug log
+                fetch('/Visitor/CheckOut', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id })
+                })
+                    .then(response => {
+                        console.log('Check-out response status:', response.status); // Debug log
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Check-out response data:', data); // Debug log
+                        if (data.success) {
+                            alert('✅ Visitor checked out successfully!');
+                            location.reload();
+                        } else {
+                            alert('❌ Error: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Check-out error:', error);
+                        alert('❌ Error checking out visitor: ' + error.message);
+                    });
+            }
+        }
+    </script>
+}

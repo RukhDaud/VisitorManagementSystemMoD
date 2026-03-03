@@ -1,0 +1,255 @@
+@model List<VisitorManagementSystemMoD.Models.Department>
+@{
+    ViewData["Title"] = "Department Management";
+    var totalUsers = Model.Sum(d => d.Users.Count);
+    var totalVisitors = Model.Sum(d => d.Visitors.Count);
+}
+
+@section Breadcrumb {
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="@Url.Action("Index", "Dashboard")"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="@Url.Action("Administration", "Dashboard")"><i class="fas fa-cogs"></i> Administration</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Department Management</li>
+        </ol>
+    </nav>
+}
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="fas fa-building me-2 text-primary"></i>Department Management</h2>
+        <p class="text-muted mb-0 small">Manage organizational departments and assignments</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="@Url.Action("Administration", "Dashboard")" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i>Administration
+        </a>
+        <a href="@Url.Action("Create", "DepartmentManagement")" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus me-1"></i>New Department
+        </a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-1"></i> @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-1"></i> @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #dbeafe 0%, #93c5fd 100%);">
+            <div class="card-body p-3 text-center">
+                <p class="text-primary fw-semibold mb-1 small">Total Departments</p>
+                <h3 class="fw-bold mb-0 text-primary">@Model.Count</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #d1fae5 0%, #6ee7b7 100%);">
+            <div class="card-body p-3 text-center">
+                <p class="fw-semibold mb-1 small" style="color:#059669;">Assigned Users</p>
+                <h3 class="fw-bold mb-0" style="color:#059669;">@totalUsers</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #ede9fe 0%, #a78bfa 100%);">
+            <div class="card-body p-3 text-center">
+                <p class="fw-semibold mb-1 small" style="color:#5b21b6;">Tracked Visitors</p>
+                <h3 class="fw-bold mb-0" style="color:#5b21b6;">@totalVisitors</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card shadow-sm mb-4 border-0">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-8">
+                <label class="form-label small fw-semibold mb-1">Search</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" id="deptSearch" class="form-control" placeholder="Department name, code, description...">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-semibold mb-1">Sort By</label>
+                <select id="deptSort" class="form-select form-select-sm">
+                    <option value="name">Name</option>
+                    <option value="users">Users</option>
+                    <option value="date">Created</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary btn-sm w-100" onclick="document.getElementById('deptSearch').value='';filterDepts();" title="Reset">
+                    <i class="fas fa-undo me-1"></i>Reset
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Departments Table -->
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive" style="max-height: 65vh; overflow-y: auto;">
+            <table class="table table-hover mb-0" id="deptsTable">
+                <thead style="position: sticky; top: 0; z-index: 1; background: #f8f9fc;">
+                    <tr class="small">
+                        <th class="px-3 py-2 text-muted text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.5px; border-bottom: 2px solid #e5e7eb;">Department Name</th>
+                        <th class="px-3 py-2 text-muted text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.5px; border-bottom: 2px solid #e5e7eb;">Code</th>
+                        <th class="px-3 py-2 text-muted text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.5px; border-bottom: 2px solid #e5e7eb;">Description</th>
+                        <th class="px-3 py-2 text-muted text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.5px; border-bottom: 2px solid #e5e7eb;">Users</th>
+                        <th class="px-3 py-2 text-muted text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.5px; border-bottom: 2px solid #e5e7eb;">Visitors</th>
+                        <th class="px-3 py-2 text-muted text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.5px; border-bottom: 2px solid #e5e7eb;">Created At</th>
+                        <th class="px-3 py-2 text-muted text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.5px; border-bottom: 2px solid #e5e7eb;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="small" id="deptsTableBody">
+                    @if (Model.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="fas fa-building fa-2x mb-2 d-block" style="color:#d1d5db;"></i>
+                                No departments found
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var dept in Model)
+                        {
+                            <tr class="dept-row"
+                                data-name="@dept.Name.ToLower()"
+                                data-code="@(dept.Code?.ToLower() ?? "")"
+                                data-desc="@(dept.Description?.ToLower() ?? "")"
+                                data-users="@dept.Users.Count"
+                                data-date="@dept.CreatedAt.ToString("yyyy-MM-dd")">
+                                <td class="px-3 py-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rounded d-flex align-items-center justify-content-center text-white fw-semibold"
+                                             style="width:32px;height:32px;font-size:0.75rem;background:linear-gradient(135deg,#60a5fa,#a78bfa);border-radius:8px;">
+                                            @dept.Name.Substring(0, 1).ToUpper()
+                                        </div>
+                                        <span class="fw-semibold">@dept.Name</span>
+                                    </div>
+                                </td>
+                                <td class="px-3 py-2">
+                                    @if (!string.IsNullOrEmpty(dept.Code))
+                                    {
+                                        <span class="badge rounded-pill" style="background:#eff6ff;color:#1d4ed8;font-weight:500;">@dept.Code</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td class="px-3 py-2 text-muted">@(dept.Description ?? "—")</td>
+                                <td class="px-3 py-2">
+                                    <span class="badge rounded-pill" style="background:#dbeafe;color:#1d4ed8;font-weight:500;">@dept.Users.Count</span>
+                                </td>
+                                <td class="px-3 py-2">
+                                    <span class="badge rounded-pill" style="background:#ede9fe;color:#5b21b6;font-weight:500;">@dept.Visitors.Count</span>
+                                </td>
+                                <td class="px-3 py-2 text-muted" style="font-size:0.75rem;">@dept.CreatedAt.ToString("MMM dd, yyyy")</td>
+                                <td class="px-3 py-2">
+                                    <div class="d-flex gap-1">
+                                        <a href="@Url.Action("Edit", "DepartmentManagement", new { id = dept.Id })"
+                                           class="btn btn-sm btn-outline-primary" style="padding:2px 8px;font-size:0.7rem;" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                                style="padding:2px 8px;font-size:0.7rem;"
+                                                onclick="deleteDepartment(@dept.Id, '@dept.Name', @dept.Users.Count, @dept.Visitors.Count)" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center py-2">
+        <span class="text-muted small" id="deptRecordCount">@Model.Count department(s)</span>
+        <a href="@Url.Action("Administration", "Dashboard")" class="text-muted small text-decoration-none">
+            <i class="fas fa-arrow-left me-1"></i>Back to Administration
+        </a>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function deleteDepartment(id, name, userCount, visitorCount) {
+            if (userCount > 0 || visitorCount > 0) {
+                alert('Cannot delete department "' + name + '".\n\nThis department has ' + userCount + ' user(s) and ' + visitorCount + ' visitor(s) associated with it.\n\nPlease reassign or remove them first.');
+                return;
+            }
+
+            if (confirm('Are you sure you want to delete the department "' + name + '"?\n\nThis action cannot be undone.')) {
+                $.ajax({
+                    url: '@Url.Action("Delete", "DepartmentManagement")',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ id: id }),
+                    success: function (response) {
+                        if (response.success) {
+                            window.location.reload();
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
+                    },
+                    error: function () {
+                        alert('An error occurred while deleting the department.');
+                    }
+                });
+            }
+        }
+
+        function filterDepts() {
+            var search = document.getElementById('deptSearch').value.toLowerCase();
+            var rows = document.querySelectorAll('.dept-row');
+            var visible = 0;
+            rows.forEach(function (row) {
+                var name = row.getAttribute('data-name');
+                var code = row.getAttribute('data-code');
+                var desc = row.getAttribute('data-desc');
+                var match = name.includes(search) || code.includes(search) || desc.includes(search);
+                row.style.display = match ? '' : 'none';
+                if (match) visible++;
+            });
+            document.getElementById('deptRecordCount').textContent = visible + ' department(s)';
+        }
+
+        function sortDepts() {
+            var sortBy = document.getElementById('deptSort').value;
+            var tbody = document.getElementById('deptsTableBody');
+            var rows = Array.from(tbody.querySelectorAll('.dept-row'));
+            rows.sort(function (a, b) {
+                if (sortBy === 'name') return a.getAttribute('data-name').localeCompare(b.getAttribute('data-name'));
+                if (sortBy === 'users') return parseInt(b.getAttribute('data-users')) - parseInt(a.getAttribute('data-users'));
+                if (sortBy === 'date') return b.getAttribute('data-date').localeCompare(a.getAttribute('data-date'));
+                return 0;
+            });
+            rows.forEach(function (row) { tbody.appendChild(row); });
+        }
+
+        document.getElementById('deptSearch').addEventListener('input', filterDepts);
+        document.getElementById('deptSort').addEventListener('change', sortDepts);
+    </script>
+}

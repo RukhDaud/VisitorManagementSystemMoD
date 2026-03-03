@@ -1,0 +1,599 @@
+@model List<VisitorManagementSystemMoD.Models.User>
+@{
+    ViewData["Title"] = "User Management";
+    var roles = Model.Where(u => u.Role != null).Select(u => u.Role!.Name).Distinct().OrderBy(r => r).ToList();
+}
+
+@section Breadcrumb {
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="@Url.Action("Index", "Dashboard")"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="@Url.Action("Administration", "Dashboard")"><i class="fas fa-cogs"></i> Administration</a></li>
+            <li class="breadcrumb-item active" aria-current="page">User Management</li>
+        </ol>
+    </nav>
+}
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="fas fa-users me-2 text-primary"></i>User Management</h2>
+        <p class="text-muted mb-0 small">Manage system users, roles, and access</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="@Url.Action("Administration", "Dashboard")" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i>Administration
+        </a>
+        <a href="@Url.Action("Create", "UserManagement")" class="btn btn-primary btn-sm">
+            <i class="fas fa-user-plus me-1"></i>New User
+        </a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-1"></i> @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-1"></i> @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100 kpi-card" style="background: linear-gradient(135deg, #dbeafe 0%, #93c5fd 100%); cursor:pointer;" data-bs-toggle="modal" data-bs-target="#TotalUsersModal">
+            <div class="card-body p-3 text-center">
+                <p class="text-primary fw-semibold mb-1 small">Total Users</p>
+                <h3 class="fw-bold mb-0 text-primary">@Model.Count</h3>
+                <small class="text-primary mt-1 d-block" style="font-size: 0.7rem;">View all →</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100 kpi-card" style="background: linear-gradient(135deg, #d1fae5 0%, #6ee7b7 100%); cursor:pointer;" data-bs-toggle="modal" data-bs-target="#ActiveUsersModal">
+            <div class="card-body p-3 text-center">
+                <p class="fw-semibold mb-1 small" style="color:#059669;">Active</p>
+                <h3 class="fw-bold mb-0" style="color:#059669;">@Model.Count(u => u.IsActive)</h3>
+                <small class="mt-1 d-block" style="color:#059669; font-size: 0.7rem;">View active →</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100 kpi-card" style="background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%); cursor:pointer;" data-bs-toggle="modal" data-bs-target="#InactiveUsersModal">
+            <div class="card-body p-3 text-center">
+                <p class="fw-semibold mb-1 small" style="color:#92400e;">Inactive</p>
+                <h3 class="fw-bold mb-0" style="color:#92400e;">@Model.Count(u => !u.IsActive)</h3>
+                <small class="mt-1 d-block" style="color:#92400e; font-size: 0.7rem;">View inactive →</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100 kpi-card" style="background: linear-gradient(135deg, #ede9fe 0%, #a78bfa 100%); cursor:pointer;" data-bs-toggle="modal" data-bs-target="#RolesOverviewModal">
+            <div class="card-body p-3 text-center">
+                <p class="fw-semibold mb-1 small" style="color:#5b21b6;">Roles</p>
+                <h3 class="fw-bold mb-0" style="color:#5b21b6;">@roles.Count</h3>
+                <small class="mt-1 d-block" style="color:#5b21b6; font-size: 0.7rem;">View roles →</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card shadow-sm mb-4 border-0">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small fw-semibold mb-1">Search</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" id="userSearch" class="form-control" placeholder="Name, username, department...">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold mb-1">Role</label>
+                <select id="roleFilter" class="form-select form-select-sm">
+                    <option value="all">All Roles</option>
+                    @foreach (var role in roles)
+                    {
+                        <option value="@role">@role</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold mb-1">Status</label>
+                <select id="statusFilter" class="form-select form-select-sm">
+                    <option value="all">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary btn-sm w-100" onclick="resetFilters()" title="Reset Filters">
+                    <i class="fas fa-undo me-1"></i>Reset
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Users Table -->
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive" style="max-height: 65vh; overflow-y: auto;">
+            <table class="table table-hover mb-0" id="usersTable">
+                <thead style="position: sticky; top: 0; z-index: 1; background: #f8f9fc;">
+                    <tr class="small">
+                        <th class="px-3 py-2 text-muted text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.5px; border-bottom: 2px solid #e5e7eb;">User</th>
+                        <th class="px-3 py-2 text-muted text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.5px; border-bottom: 2px solid #e5e7eb;">Username</th>
+                        <th class="px-3 py-2 text-muted text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.5px; border-bottom: 2px solid #e5e7eb;">Role</th>
+                        <th class="px-3 py-2 text-muted text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.5px; border-bottom: 2px solid #e5e7eb;">Department</th>
+                        <th class="px-3 py-2 text-muted text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.5px; border-bottom: 2px solid #e5e7eb;">Created</th>
+                        <th class="px-3 py-2 text-muted text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.5px; border-bottom: 2px solid #e5e7eb;">Status</th>
+                        <th class="px-3 py-2 text-muted text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.5px; border-bottom: 2px solid #e5e7eb;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="small" id="usersTableBody">
+                    @if (Model.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="fas fa-users fa-2x mb-2 d-block" style="color:#d1d5db;"></i>
+                                No users found
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var user in Model)
+                        {
+                            <tr class="user-row" 
+                                data-name="@user.Name.ToLower()" 
+                                data-username="@user.Username.ToLower()" 
+                                data-role="@(user.Role?.Name?.ToLower() ?? "")"
+                                data-department="@(user.Department?.Name?.ToLower() ?? "")"
+                                data-status="@(user.IsActive ? "active" : "inactive")">
+                                <td class="px-3 py-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-semibold" 
+                                             style="width:32px;height:32px;font-size:0.75rem;background:linear-gradient(135deg,#60a5fa,#a78bfa);">
+                                            @user.Name.Substring(0, 1).ToUpper()
+                                        </div>
+                                        <div>
+                                            <span class="fw-semibold @(user.IsActive ? "" : "text-muted")">@user.Name</span>
+                                            @if (user.Username == "superadmin")
+                                            {
+                                                <span class="badge bg-danger ms-1" style="font-size:0.6rem;">Admin</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-3 py-2 @(user.IsActive ? "" : "text-muted")">@@@user.Username</td>
+                                <td class="px-3 py-2">
+                                    @if (user.Role != null)
+                                    {
+                                        <span class="badge rounded-pill" style="background:#eff6ff;color:#1d4ed8;font-weight:500;">@user.Role.Name</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">No Role</span>
+                                    }
+                                </td>
+                                <td class="px-3 py-2 @(user.IsActive ? "" : "text-muted")">
+                                    @if (user.Department != null)
+                                    {
+                                        @user.Department.Name
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td class="px-3 py-2 text-muted" style="font-size:0.75rem;">@user.CreatedAt.ToString("MMM dd, yyyy")</td>
+                                <td class="px-3 py-2">
+                                    @if (user.IsActive)
+                                    {
+                                        <span class="badge rounded-pill" style="background:#dcfce7;color:#166534;font-weight:500;">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge rounded-pill" style="background:#f1f5f9;color:#64748b;font-weight:500;">Inactive</span>
+                                    }
+                                </td>
+                                <td class="px-3 py-2">
+                                    @if (user.Username != "superadmin")
+                                    {
+                                        <div class="d-flex gap-1">
+                                            <a href="@Url.Action("Edit", "UserManagement", new { id = user.Id })" 
+                                               class="btn btn-sm btn-outline-primary" style="padding:2px 8px;font-size:0.7rem;" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm @(user.IsActive ? "btn-outline-secondary" : "btn-outline-success")" 
+                                                    style="padding:2px 8px;font-size:0.7rem;"
+                                                    onclick="toggleActive(@user.Id, '@user.Name', @user.IsActive.ToString().ToLower())" title="@(user.IsActive ? "Deactivate" : "Activate")">
+                                                <i class="fas fa-power-off"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                    style="padding:2px 8px;font-size:0.7rem;"
+                                                    onclick="deleteUser(@user.Id, '@user.Name')" title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small"><i class="fas fa-lock me-1"></i>Protected</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center py-2">
+        <span class="text-muted small" id="userRecordCount">@Model.Count user(s)</span>
+        <a href="@Url.Action("Administration", "Dashboard")" class="text-muted small text-decoration-none">
+            <i class="fas fa-arrow-left me-1"></i>Back to Administration
+        </a>
+    </div>
+</div>
+
+<!-- Total Users Modal -->
+<div class="modal fade" id="TotalUsersModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-users me-2 text-primary"></i>All Users</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-hover">
+                        <thead class="table-light" style="position: sticky; top: 0;">
+                            <tr>
+                                <th>User</th>
+                                <th>Username</th>
+                                <th>Role</th>
+                                <th>Department</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var user in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-semibold"
+                                                 style="width:28px;height:28px;font-size:0.65rem;background:linear-gradient(135deg,#60a5fa,#a78bfa);">@user.Name.Substring(0, 1).ToUpper()</div>
+                                            <strong>@user.Name</strong>
+                                        </div>
+                                    </td>
+                                    <td class="text-muted">@@@user.Username</td>
+                                    <td>
+                                        @if (user.Role != null)
+                                        {
+                                            <span class="badge rounded-pill" style="background:#eff6ff;color:#1d4ed8;font-weight:500;">@user.Role.Name</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">—</span>
+                                        }
+                                    </td>
+                                    <td>@(user.Department?.Name ?? "—")</td>
+                                    <td>
+                                        @if (user.IsActive)
+                                        {
+                                            <span class="badge rounded-pill" style="background:#dcfce7;color:#166534;font-weight:500;">Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge rounded-pill" style="background:#f1f5f9;color:#64748b;font-weight:500;">Inactive</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <span class="me-auto text-muted small">Total: @Model.Count user(s)</span>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Active Users Modal -->
+<div class="modal fade" id="ActiveUsersModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-user-check me-2 text-success"></i>Active Users</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                @{ var activeUsers = Model.Where(u => u.IsActive).ToList(); }
+                @if (activeUsers.Any())
+                {
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-hover">
+                            <thead class="table-light" style="position: sticky; top: 0;">
+                                <tr>
+                                    <th>User</th>
+                                    <th>Username</th>
+                                    <th>Role</th>
+                                    <th>Department</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var user in activeUsers)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-semibold"
+                                                     style="width:28px;height:28px;font-size:0.65rem;background:linear-gradient(135deg,#60a5fa,#a78bfa);">@user.Name.Substring(0, 1).ToUpper()</div>
+                                                <strong>@user.Name</strong>
+                                            </div>
+                                        </td>
+                                        <td class="text-muted">@@@user.Username</td>
+                                        <td>
+                                            @if (user.Role != null)
+                                            {
+                                                <span class="badge rounded-pill" style="background:#eff6ff;color:#1d4ed8;font-weight:500;">@user.Role.Name</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">—</span>
+                                            }
+                                        </td>
+                                        <td>@(user.Department?.Name ?? "—")</td>
+                                        <td class="text-muted" style="font-size:0.8rem;">@user.CreatedAt.ToString("MMM dd, yyyy")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted text-center py-4 mb-0">No active users</p>
+                }
+            </div>
+            <div class="modal-footer">
+                <span class="me-auto text-muted small">Total: @activeUsers.Count active user(s)</span>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Inactive Users Modal -->
+<div class="modal fade" id="InactiveUsersModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-user-times me-2" style="color:#92400e;"></i>Inactive Users</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                @{ var inactiveUsers = Model.Where(u => !u.IsActive).ToList(); }
+                @if (inactiveUsers.Any())
+                {
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-hover">
+                            <thead class="table-light" style="position: sticky; top: 0;">
+                                <tr>
+                                    <th>User</th>
+                                    <th>Username</th>
+                                    <th>Role</th>
+                                    <th>Department</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var user in inactiveUsers)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-semibold"
+                                                     style="width:28px;height:28px;font-size:0.65rem;background:linear-gradient(135deg,#94a3b8,#cbd5e1);">@user.Name.Substring(0, 1).ToUpper()</div>
+                                                <span class="text-muted"><strong>@user.Name</strong></span>
+                                            </div>
+                                        </td>
+                                        <td class="text-muted">@@@user.Username</td>
+                                        <td>
+                                            @if (user.Role != null)
+                                            {
+                                                <span class="badge rounded-pill" style="background:#f1f5f9;color:#64748b;font-weight:500;">@user.Role.Name</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">—</span>
+                                            }
+                                        </td>
+                                        <td class="text-muted">@(user.Department?.Name ?? "—")</td>
+                                        <td class="text-muted" style="font-size:0.8rem;">@user.CreatedAt.ToString("MMM dd, yyyy")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted text-center py-4 mb-0">No inactive users</p>
+                }
+            </div>
+            <div class="modal-footer">
+                <span class="me-auto text-muted small">Total: @inactiveUsers.Count inactive user(s)</span>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Roles Overview Modal -->
+<div class="modal fade" id="RolesOverviewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-user-shield me-2" style="color:#5b21b6;"></i>Roles Overview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                @{ var roleGroups = Model.Where(u => u.Role != null).GroupBy(u => u.Role!.Name).OrderBy(g => g.Key).ToList(); }
+                @if (roleGroups.Any())
+                {
+                    @foreach (var group in roleGroups)
+                    {
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center justify-content-between mb-2 px-2 py-2 rounded" style="background:#f8f9fc;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center text-white"
+                                         style="width:28px;height:28px;font-size:0.65rem;background:linear-gradient(135deg,#7c3aed,#a78bfa);">
+                                        <i class="fas fa-shield-alt" style="font-size:0.6rem;"></i>
+                                    </div>
+                                    <span class="fw-semibold">@group.Key</span>
+                                </div>
+                                <span class="badge rounded-pill" style="background:#ede9fe;color:#5b21b6;font-weight:600;">@group.Count() user(s)</span>
+                            </div>
+                            <div class="ps-4">
+                                @foreach (var user in group)
+                                {
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white"
+                                             style="width:22px;height:22px;font-size:0.55rem;background:linear-gradient(135deg,#60a5fa,#a78bfa);">@user.Name.Substring(0, 1).ToUpper()</div>
+                                        <span class="small @(user.IsActive ? "" : "text-muted")">@user.Name</span>
+                                        @if (user.IsActive)
+                                        {
+                                            <span class="badge rounded-pill" style="background:#dcfce7;color:#166534;font-size:0.55rem;font-weight:500;">Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge rounded-pill" style="background:#f1f5f9;color:#64748b;font-size:0.55rem;font-weight:500;">Inactive</span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted text-center py-4 mb-0">No roles assigned</p>
+                }
+            </div>
+            <div class="modal-footer">
+                <span class="me-auto text-muted small">@roles.Count role(s) · @Model.Count user(s) total</span>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function toggleActive(id, name, isActive) {
+            const action = isActive ? 'deactivate' : 'activate';
+            if (confirm('Are you sure you want to ' + action + ' user "' + name + '"?')) {
+                $.ajax({
+                    url: '@Url.Action("ToggleActive", "UserManagement")',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ id: id }),
+                    success: function (response) {
+                        if (response.success) {
+                            window.location.reload();
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
+                    },
+                    error: function () {
+                        alert('An error occurred while updating the user status.');
+                    }
+                });
+            }
+        }
+
+        function deleteUser(id, name) {
+            if (confirm('Are you sure you want to delete user "' + name + '"?\n\nThis action cannot be undone.')) {
+                $.ajax({
+                    url: '@Url.Action("Delete", "UserManagement")',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ id: id }),
+                    success: function (response) {
+                        if (response.success) {
+                            window.location.reload();
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
+                    },
+                    error: function () {
+                        alert('An error occurred while deleting the user.');
+                    }
+                });
+            }
+        }
+
+        function resetFilters() {
+            $('#userSearch').val('');
+            $('#roleFilter').val('all');
+            $('#statusFilter').val('all');
+            filterUsers();
+        }
+
+        function filterUsers() {
+            var search = $('#userSearch').val().toLowerCase();
+            var role = $('#roleFilter').val().toLowerCase();
+            var status = $('#statusFilter').val().toLowerCase();
+            var visible = 0;
+
+            $('#usersTableBody .user-row').each(function () {
+                var row = $(this);
+                var name = row.data('name') || '';
+                var username = row.data('username') || '';
+                var rowRole = row.data('role') || '';
+                var dept = row.data('department') || '';
+                var rowStatus = row.data('status') || '';
+
+                var matchSearch = !search || name.includes(search) || username.includes(search) || dept.includes(search);
+                var matchRole = role === 'all' || rowRole === role;
+                var matchStatus = status === 'all' || rowStatus === status;
+
+                if (matchSearch && matchRole && matchStatus) {
+                    row.show();
+                    visible++;
+                } else {
+                    row.hide();
+                }
+            });
+
+            $('#userRecordCount').text(visible + ' user(s)');
+        }
+
+        $(document).ready(function () {
+            $('#userSearch').on('input', function () { filterUsers(); });
+            $('#roleFilter, #statusFilter').on('change', function () { filterUsers(); });
+        });
+    </script>
+
+    <style>
+        #usersTable tbody tr:hover { background-color: #f0f9ff !important; }
+        .kpi-card { transition: all 0.3s ease; }
+        .kpi-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.12) !important; }
+    </style>
+}

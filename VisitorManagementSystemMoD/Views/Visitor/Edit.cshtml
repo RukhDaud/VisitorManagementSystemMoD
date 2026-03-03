@@ -1,0 +1,163 @@
+@model VisitorManagementSystemMoD.Models.ViewModels.CreateVisitorViewModel
+@{
+    ViewData["Title"] = "Edit Visitor Request";
+    var visitorId = ViewBag.VisitorId;
+    var currentStatus = ViewBag.CurrentStatus as string;
+}
+
+@section Breadcrumb {
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="@Url.Action("Index", "Dashboard")"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="@Url.Action("MyVisitors", "Visitor")">My Visitors</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Edit Visitor</li>
+        </ol>
+    </nav>
+}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="text-center mb-4">
+            <div class="d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px; border-radius: 20px; background: white; border: 2px solid #e5e7eb; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                <i class="fas fa-user-edit fa-3x text-primary"></i>
+            </div>
+            <h1 class="display-6 fw-bold">Edit Visitor Request</h1>
+            <p class="text-muted">Update visitor details (Only allowed before check-in)</p>
+            @if (currentStatus == "Approved")
+            {
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Note:</strong> This visitor was previously approved. Editing will reset the status to <strong>Pending</strong> and require SCO re-approval.
+                </div>
+            }
+        </div>
+
+        <div class="card">
+            <div class="card-body p-4">
+                <form asp-action="Edit" asp-route-id="@visitorId" method="post">
+                    <div class="row g-3">
+                        <!-- Visitor Name -->
+                        <div class="col-md-6">
+                            <label asp-for="Name" class="form-label">Visitor Full Name *</label>
+                            <input asp-for="Name" class="form-control" placeholder="Ahmed Khan" />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+
+                        <!-- CNIC -->
+                        <div class="col-md-6">
+                            <label asp-for="CNIC" class="form-label">CNIC *</label>
+                            <input asp-for="CNIC" class="form-control" placeholder="42101-1234567-1" />
+                            <span asp-validation-for="CNIC" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Phone -->
+                        <div class="col-md-6">
+                            <label asp-for="Phone" class="form-label">Phone Number *</label>
+                            <input asp-for="Phone" class="form-control" placeholder="+92 300-1234567" />
+                            <span asp-validation-for="Phone" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Expected Time -->
+                        <div class="col-md-6">
+                            <label asp-for="ExpectedTime" class="form-label">Expected Visit Time *</label>
+                            <input asp-for="ExpectedTime" type="datetime-local" class="form-control" />
+                            <span asp-validation-for="ExpectedTime" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Purpose -->
+                        <div class="col-12">
+                            <label asp-for="Purpose" class="form-label">Purpose of Visit *</label>
+                            <textarea asp-for="Purpose" class="form-control" rows="3" placeholder="Business Meeting / Document Submission / Interview etc."></textarea>
+                            <span asp-validation-for="Purpose" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Has Vehicle Switch -->
+                        <div class="col-12">
+                            <div class="card" style="background-color: #dbeafe; border-color: #93c5fd;">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div style="width: 48px; height: 48px; background-color: #bfdbfe; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                                <i class="fas fa-car fa-lg text-primary"></i>
+                                            </div>
+                                            <div>
+                                                <label for="hasVehicleSwitch" class="form-label mb-0 fw-bold">Visitor has a vehicle?</label>
+                                                <p class="small text-muted mb-0">Enable this if visitor will arrive by vehicle</p>
+                                            </div>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input asp-for="HasVehicle" class="form-check-input" type="checkbox" role="switch" id="hasVehicleSwitch" style="width: 3rem; height: 1.5rem;" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Vehicle Details (shown when HasVehicle is checked) -->
+                        <div id="vehicleDetails" style="display: none;">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label asp-for="VehicleType" class="form-label">Vehicle Type *</label>
+                                    <select asp-for="VehicleType" class="form-select" id="vehicleType">
+                                        <option value="">Select vehicle type</option>
+                                        <option value="Car">Car</option>
+                                        <option value="Truck">Truck</option>
+                                        <option value="Bike">Bike</option>
+                                    </select>
+                                    <span asp-validation-for="VehicleType" class="text-danger small"></span>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label asp-for="VehicleNumber" class="form-label">Vehicle Number/Registration *</label>
+                                    <input asp-for="VehicleNumber" class="form-control" id="vehicleNumber" placeholder="ABC-123 or LEA-4567" />
+                                    <span asp-validation-for="VehicleNumber" class="text-danger small"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="d-flex gap-3 mt-4">
+                        <button type="submit" class="btn btn-success flex-grow-1">
+                            <i class="fas fa-save me-2"></i>Update Visitor
+                        </button>
+                        <a asp-action="MyVisitors" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                    </div>
+
+                    @if (currentStatus == "Approved")
+                    {
+                        <!-- Warning for approved visitors -->
+                        <div class="alert alert-warning mt-4">
+                            <strong><i class="fas fa-exclamation-triangle me-2"></i>Warning:</strong> This visitor request was already approved. Saving changes will reset the approval status to <strong>Pending</strong> and require the Chief Security Officer (SCO) to re-approve the request.
+                        </div>
+                    }
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const hasVehicleSwitch = document.getElementById('hasVehicleSwitch');
+        const vehicleDetails = document.getElementById('vehicleDetails');
+        const vehicleTypeSelect = document.getElementById('vehicleType');
+        const vehicleNumberInput = document.getElementById('vehicleNumber');
+
+        hasVehicleSwitch.addEventListener('change', function () {
+            if (this.checked) {
+                vehicleDetails.style.display = 'block';
+            } else {
+                vehicleDetails.style.display = 'none';
+                vehicleTypeSelect.value = '';
+                vehicleNumberInput.value = '';
+            }
+        });
+
+        // Initialize on page load
+        if (hasVehicleSwitch.checked) {
+            vehicleDetails.style.display = 'block';
+        }
+    </script>
+}

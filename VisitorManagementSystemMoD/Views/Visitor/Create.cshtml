@@ -1,0 +1,319 @@
+
+@model VisitorManagementSystemMoD.Models.ViewModels.BulkVisitorViewModel
+@{
+    ViewData["Title"] = "Create Visitor Request";
+}
+
+@section Breadcrumb {
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="@Url.Action("Index", "Dashboard")"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Create Visitor</li>
+        </ol>
+    </nav>
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="text-center mb-4">
+            <div class="d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px; border-radius: 20px; background: white; border: 2px solid #e5e7eb; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                <i class="fas fa-user-plus fa-3x text-primary"></i>
+            </div>
+            <h1 class="display-6 fw-bold">Create Visitor Request(s)</h1>
+            <p class="text-muted">Fill in visitor details to request SCO approval. You can add multiple visitors at once!</p>
+        </div>
+
+        <form asp-action="Create" method="post" id="bulkVisitorForm">
+            <!-- Visitors Container -->
+            <div id="visitorsContainer">
+                @for (int i = 0; i < Model.Visitors.Count; i++)
+                {
+                    <div class="visitor-entry card mb-3" data-index="@i">
+                        <div class="card-header d-flex justify-content-between align-items-center" style="background: white; border-bottom: 2px solid #e5e7eb;">
+                            <h5 class="mb-0 text-dark">
+                                <i class="fas fa-user me-2 text-primary"></i>Visitor #<span class="visitor-number">@(i + 1)</span>
+                            </h5>
+                            <button type="button" class="btn btn-sm btn-outline-danger remove-visitor" style="display: none;">
+                                <i class="fas fa-trash"></i> Remove
+                            </button>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="row g-3">
+                                <!-- Visitor Name -->
+                                <div class="col-md-6">
+                                    <label class="form-label">Visitor Full Name *</label>
+                                    <input name="Visitors[@i].Name" class="form-control" placeholder="Ahmed Khan" required />
+                                    <span class="text-danger small"></span>
+                                </div>
+
+                                <!-- CNIC -->
+                                <div class="col-md-6">
+                                    <label class="form-label">CNIC *</label>
+                                    <input name="Visitors[@i].CNIC" class="form-control" placeholder="42101-1234567-1" required />
+                                    <span class="text-danger small"></span>
+                                </div>
+
+                                <!-- Phone -->
+                                <div class="col-md-6">
+                                    <label class="form-label">Phone Number *</label>
+                                    <input name="Visitors[@i].Phone" class="form-control" placeholder="+92 300-1234567" required />
+                                    <span class="text-danger small"></span>
+                                </div>
+
+                                <!-- Expected Time -->
+                                <div class="col-md-6">
+                                    <label class="form-label">Expected Visit Time *</label>
+                                    <input name="Visitors[@i].ExpectedTime" type="datetime-local" class="form-control" required />
+                                    <span class="text-danger small"></span>
+                                </div>
+
+                                <!-- Purpose -->
+                                <div class="col-12">
+                                    <label class="form-label">Purpose of Visit *</label>
+                                    <textarea name="Visitors[@i].Purpose" class="form-control" rows="2" placeholder="Business Meeting / Document Submission / Interview etc." required></textarea>
+                                    <span class="text-danger small"></span>
+                                </div>
+
+                                <!-- Has Vehicle Switch -->
+                                <div class="col-12">
+                                    <div class="card" style="background-color: #dbeafe; border-color: #93c5fd;">
+                                        <div class="card-body py-2">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="fas fa-car text-primary"></i>
+                                                    <label class="form-label mb-0">Visitor has a vehicle?</label>
+                                                </div>
+                                                <div class="form-check form-switch">
+                                                    <input name="Visitors[@i].HasVehicle" class="form-check-input vehicle-switch" type="checkbox" style="width: 3rem; height: 1.5rem;" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Vehicle Details -->
+                                <div class="vehicle-details" style="display: none;">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Vehicle Type *</label>
+                                            <select name="Visitors[@i].VehicleType" class="form-select vehicle-type">
+                                                <option value="">Select vehicle type</option>
+                                                <option value="Car">Car</option>
+                                                <option value="Truck">Truck</option>
+                                                <option value="Bike">Bike</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label class="form-label">Vehicle Number/Registration *</label>
+                                            <input name="Visitors[@i].VehicleNumber" class="form-control vehicle-number" placeholder="ABC-123 or LEA-4567" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Add More Button -->
+            <div class="text-center mb-3">
+                <button type="button" id="addVisitorBtn" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-plus-circle me-2"></i>Add Another Visitor
+                </button>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex gap-3">
+                        <button type="submit" class="btn btn-primary flex-grow-1 btn-lg" style="background: #3b82f6; border: none; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);">
+                            <i class="fas fa-paper-plane me-2"></i>Submit All for SCO Approval
+                        </button>
+                        <a asp-action="MyVisitors" class="btn btn-outline-secondary btn-lg">
+                            Cancel
+                        </a>
+                    </div>
+
+                    <!-- Note -->
+                    <div class="alert alert-info mt-3 mb-0">
+                        <strong><i class="fas fa-info-circle me-2"></i>Note:</strong> All visitor requests will be sent to the Chief Security Officer (SCO) for approval.
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let visitorCount = @Model.Visitors.Count;
+
+        // Add Visitor Button Click
+        document.getElementById('addVisitorBtn').addEventListener('click', function () {
+            const container = document.getElementById('visitorsContainer');
+            const newIndex = visitorCount;
+
+            const visitorHtml = `
+                <div class="visitor-entry card mb-3" data-index="${newIndex}">
+                    <div class="card-header d-flex justify-content-between align-items-center" style="background: white; border-bottom: 2px solid #e5e7eb;">
+                        <h5 class="mb-0 text-dark">
+                            <i class="fas fa-user me-2 text-primary"></i>Visitor #<span class="visitor-number">${newIndex + 1}</span>
+                        </h5>
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-visitor">
+                            <i class="fas fa-trash"></i> Remove
+                        </button>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Visitor Full Name *</label>
+                                <input name="Visitors[${newIndex}].Name" class="form-control" placeholder="Ahmed Khan" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">CNIC *</label>
+                                <input name="Visitors[${newIndex}].CNIC" class="form-control" placeholder="42101-1234567-1" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Phone Number *</label>
+                                <input name="Visitors[${newIndex}].Phone" class="form-control" placeholder="+92 300-1234567" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Expected Visit Time *</label>
+                                <input name="Visitors[${newIndex}].ExpectedTime" type="datetime-local" class="form-control" required />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Purpose of Visit *</label>
+                                <textarea name="Visitors[${newIndex}].Purpose" class="form-control" rows="2" placeholder="Business Meeting / Document Submission / Interview etc." required></textarea>
+                            </div>
+                            <div class="col-12">
+                                <div class="card" style="background-color: #dbeafe; border-color: #93c5fd;">
+                                    <div class="card-body py-2">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <i class="fas fa-car text-primary"></i>
+                                                <label class="form-label mb-0">Visitor has a vehicle?</label>
+                                            </div>
+                                            <div class="form-check form-switch">
+                                                <input name="Visitors[${newIndex}].HasVehicle" class="form-check-input vehicle-switch" type="checkbox" style="width: 3rem; height: 1.5rem;" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="vehicle-details" style="display: none;">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Vehicle Type *</label>
+                                        <select name="Visitors[${newIndex}].VehicleType" class="form-select vehicle-type">
+                                            <option value="">Select vehicle type</option>
+                                            <option value="Car">Car</option>
+                                            <option value="Truck">Truck</option>
+                                            <option value="Bike">Bike</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Vehicle Number/Registration *</label>
+                                        <input name="Visitors[${newIndex}].VehicleNumber" class="form-control vehicle-number" placeholder="ABC-123 or LEA-4567" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.insertAdjacentHTML('beforeend', visitorHtml);
+            visitorCount++;
+            updateVisitorNumbers();
+            updateRemoveButtons();
+            attachVehicleToggleEvents();
+            attachDateTimeCloseEvents(); // Attach to newly added datetime inputs
+        });
+
+        // Remove Visitor
+        document.addEventListener('click', function (e) {
+            if (e.target.closest('.remove-visitor')) {
+                e.target.closest('.visitor-entry').remove();
+                updateVisitorNumbers();
+                updateRemoveButtons();
+            }
+        });
+
+        // Vehicle Toggle
+        function attachVehicleToggleEvents() {
+            document.querySelectorAll('.vehicle-switch').forEach(function (checkbox) {
+                checkbox.addEventListener('change', function () {
+                    // Find the vehicle-details div in the same visitor-entry card
+                    const vehicleDetails = this.closest('.visitor-entry').querySelector('.vehicle-details');
+                    const vehicleType = vehicleDetails.querySelector('.vehicle-type');
+                    const vehicleNumber = vehicleDetails.querySelector('.vehicle-number');
+
+                    if (this.checked) {
+                        vehicleDetails.style.display = 'block';
+                    } else {
+                        vehicleDetails.style.display = 'none';
+                        vehicleType.value = '';
+                        vehicleNumber.value = '';
+                    }
+                });
+            });
+        }
+
+        // Update Visitor Numbers
+        function updateVisitorNumbers() {
+            document.querySelectorAll('.visitor-entry').forEach(function (entry, index) {
+                entry.querySelector('.visitor-number').textContent = index + 1;
+            });
+        }
+
+        // Update Remove Buttons Visibility
+        function updateRemoveButtons() {
+            const entries = document.querySelectorAll('.visitor-entry');
+            entries.forEach(function (entry, index) {
+                const removeBtn = entry.querySelector('.remove-visitor');
+                if (entries.length > 1) {
+                    removeBtn.style.display = 'inline-block';
+                } else {
+                    removeBtn.style.display = 'none';
+                }
+            });
+        }
+
+        // Initialize on page load
+        attachVehicleToggleEvents();
+        updateRemoveButtons();
+        attachDateTimeCloseEvents();
+
+        // Auto-close datetime picker on selection
+        function attachDateTimeCloseEvents() {
+            document.querySelectorAll('input[type="datetime-local"]').forEach(function (input) {
+                input.addEventListener('change', function () {
+                    this.blur(); // Close the picker by removing focus
+                });
+            });
+        }
+    </script>
+
+    <style>
+        .visitor-entry {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @@keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .remove-visitor:hover {
+            background-color: #f8d7da !important;
+            color: #dc3545 !important;
+        }
+    </style>
+}

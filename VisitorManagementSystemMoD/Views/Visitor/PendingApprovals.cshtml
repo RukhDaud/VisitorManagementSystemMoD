@@ -1,0 +1,392 @@
+@model IEnumerable<VisitorManagementSystemMoD.Models.Visitor>
+@{
+    ViewData["Title"] = "Pending Approvals";
+    var entries = ViewBag.Entries ?? 10;
+    var totalCount = ViewBag.TotalCount ?? 0;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="display-6 fw-bold">Pending Approvals</h1>
+        <p class="text-muted">Review and approve/reject visitor requests</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <label class="mb-0 text-muted small">Show</label>
+        <select onchange="updateEntries(this.value)" class="form-select form-select-sm" style="width: auto;">
+            <option value="10" selected="@(entries == 10)">10</option>
+            <option value="25" selected="@(entries == 25)">25</option>
+            <option value="50" selected="@(entries == 50)">50</option>
+            <option value="100" selected="@(entries == 100)">100</option>
+            <option value="-1" selected="@(entries == -1)">All</option>
+        </select>
+        <span class="text-muted small">entries (Total: @totalCount)</span>
+    </div>
+</div>
+
+@if (Model.Any())
+{
+    <div class="card">
+        <div class="card-header bg-warning bg-opacity-10 border-warning">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-clock me-2 text-warning"></i>Pending Requests (@Model.Count())</h5>
+            </div>
+        </div>
+        <div class="list-group list-group-flush">
+            @foreach (var visitor in Model)
+            {
+                <div class="list-group-item list-group-item-action" style="cursor: pointer;" onclick="viewPendingVisitorDetails(@visitor.Id)">
+                    <div class="d-flex align-items-center gap-3">
+                        <!-- Avatar -->
+                        <div class="flex-shrink-0">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width: 50px; height: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                @{
+                                    var initials = string.Join("", visitor.Name.Split(' ').Select(n => n.FirstOrDefault()));
+                                }
+                                @initials
+                            </div>
+                        </div>
+
+                        <!-- Details -->
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <h6 class="mb-0 fw-bold">@visitor.Name</h6>
+                                <span class="badge badge-pending small">Pending</span>
+                                @if (visitor.HasVehicle)
+                                {
+                                    <span class="badge bg-info small"><i class="fas fa-car me-1"></i>Vehicle</span>
+                                }
+                            </div>
+                            <div class="d-flex gap-4 text-muted small">
+                                <span><i class="fas fa-user me-1"></i>Host: @visitor.EmployeeName</span>
+                                <span><i class="fas fa-clock me-1"></i>@visitor.ExpectedTime.ToString("MMM dd, h:mm tt")</span>
+                                <span><i class="fas fa-briefcase me-1"></i>@visitor.Purpose.Substring(0, Math.Min(40, visitor.Purpose.Length))@(visitor.Purpose.Length > 40 ? "..." : "")</span>
+                            </div>
+                        </div>
+
+                        <!-- Action Icon -->
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-chevron-right text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-clipboard-check fa-3x text-success mb-3"></i>
+            <h5 class="text-muted">All caught up!</h5>
+            <p class="text-muted">No pending visitor requests at this time</p>
+        </div>
+    </div>
+}
+
+<!-- Visitor Detail Modal with Approve/Reject Actions -->
+<div class="modal fade" id="visitorDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Visitor Request Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalContent">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" id="modalFooter" style="display: none;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger" id="btnReject">
+                    <i class="fas fa-times me-2"></i>Reject
+                </button>
+                <button type="button" class="btn btn-success" id="btnApprove">
+                    <i class="fas fa-check me-2"></i>Approve
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Reason Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Reject Visitor Request</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Are you sure you want to reject the visitor request for <strong id="rejectVisitorName"></strong>?</p>
+                <div class="mb-3">
+                    <label for="rejectionReason" class="form-label">Reason for Rejection *</label>
+                    <textarea id="rejectionReason" class="form-control" rows="3" placeholder="Please provide a reason..." required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="confirmReject()">
+                    <i class="fas fa-times me-2"></i>Reject Request
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function updateEntries(entries) {
+            const params = new URLSearchParams(window.location.search);
+            params.set('entries', entries);
+            window.location.search = params.toString();
+        }
+
+        let currentVisitorId = 0;
+        let currentVisitorName = '';
+        const detailModal = new bootstrap.Modal(document.getElementById('visitorDetailModal'));
+        const rejectModal = new bootstrap.Modal(document.getElementById('rejectModal'));
+
+        function viewPendingVisitorDetails(id) {
+            currentVisitorId = id;
+            detailModal.show();
+
+            // Hide footer initially
+            document.getElementById('modalFooter').style.display = 'none';
+
+            console.log('Fetching visitor details for ID:', id); // Debug log
+
+            fetch(`/Visitor/Details?id=${id}`)
+                .then(response => {
+                    console.log('Response status:', response.status); // Debug log
+                    console.log('Response ok:', response.ok); // Debug log
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.text(); // Get as text first to see what we're getting
+                })
+                .then(text => {
+                    console.log('Response text:', text); // Debug log
+                    try {
+                        return JSON.parse(text);
+                    } catch (e) {
+                        console.error('JSON parse error:', e);
+                        throw new Error('Invalid JSON response: ' + text.substring(0, 100));
+                    }
+                })
+                .then(data => {
+                    console.log('Parsed data:', data); // Debug log
+
+                    if (data.success) {
+                        const visitor = data.visitor;
+                        currentVisitorName = visitor.name;
+
+                        let html = `
+                            <div class="row g-4">
+                                <div class="col-12">
+                                    <div class="d-flex align-items-start gap-3">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width: 64px; height: 64px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); font-size: 24px;">
+                                            ${visitor.name.split(' ').map(n => n[0]).join('')}
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h3>${visitor.name}</h3>
+                                            <div class="d-flex gap-2">
+                                                <span class="badge badge-pending">Pending Approval</span>
+                                                ${visitor.hasVehicle ? '<span class="badge bg-info"><i class="fas fa-car me-1"></i>Vehicle</span>' : '<span class="badge bg-secondary"><i class="fas fa-walking me-1"></i>By Foot</span>'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-12"><hr/></div>
+
+                                <div class="col-12">
+                                    <div class="alert alert-info">
+                                        <strong><i class="fas fa-info-circle me-2"></i>Request Information</strong>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <small class="text-muted"><i class="fas fa-id-card me-1"></i>CNIC</small>
+                                    <p class="mb-0 fw-bold">${visitor.cnic}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted"><i class="fas fa-phone me-1"></i>Phone</small>
+                                    <p class="mb-0 fw-bold">${visitor.phone}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted"><i class="fas fa-user me-1"></i>Host Employee</small>
+                                    <p class="mb-0 fw-bold">${visitor.employeeName}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted"><i class="fas fa-calendar-alt me-1"></i>Expected Visit Time</small>
+                                    <p class="mb-0 fw-bold">${new Date(visitor.expectedTime).toLocaleString()}</p>
+                                </div>
+                                <div class="col-12">
+                                    <small class="text-muted"><i class="fas fa-briefcase me-1"></i>Purpose of Visit</small>
+                                    <p class="mb-0 fw-bold">${visitor.purpose}</p>
+                                </div>
+                        `;
+
+                        if (visitor.hasVehicle) {
+                            html += `
+                                <div class="col-12"><hr/></div>
+                                <div class="col-12">
+                                    <div class="alert alert-primary">
+                                        <strong><i class="fas fa-car me-2"></i>Vehicle Information</strong>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted"><i class="fas fa-hashtag me-1"></i>Vehicle Number</small>
+                                    <p class="mb-0 fw-bold">${visitor.vehicleNumber || 'N/A'}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted"><i class="fas fa-car-side me-1"></i>Vehicle Type</small>
+                                    <p class="mb-0 fw-bold">${visitor.vehicleType || 'N/A'}</p>
+                                </div>
+                                <div class="col-12">
+                                    <div class="alert alert-warning">
+                                        <small><i class="fas fa-info-circle me-1"></i>If approved, this visitor will be directed to <strong>Gate 2</strong> (Vehicle Entry)</small>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            html += `
+                                <div class="col-12">
+                                    <div class="alert alert-warning mt-2">
+                                        <small><i class="fas fa-info-circle me-1"></i>If approved, this visitor will be directed to <strong>Reception (Gate 1)</strong> (By Foot Entry)</small>
+                                    </div>
+                                </div>
+                            `;
+                        }
+
+                        html += `
+                                <div class="col-12"><hr/></div>
+                                <div class="col-md-6">
+                                    <small class="text-muted"><i class="fas fa-clock me-1"></i>Request Submitted</small>
+                                    <p class="mb-0 fw-bold">${new Date(visitor.requestCreatedAt).toLocaleString()}</p>
+                                </div>
+                            </div>
+                        `;
+
+                        document.getElementById('modalContent').innerHTML = html;
+
+                        // Show action buttons
+                        document.getElementById('modalFooter').style.display = 'flex';
+
+                        // Setup approve button
+                        document.getElementById('btnApprove').onclick = function() {
+                            approveVisitor(currentVisitorId, currentVisitorName);
+                        };
+
+                        // Setup reject button
+                        document.getElementById('btnReject').onclick = function() {
+                            detailModal.hide();
+                            showRejectModal(currentVisitorId, currentVisitorName);
+                        };
+
+                    } else {
+                        document.getElementById('modalContent').innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                <strong>${data.message || 'Unable to load visitor details'}</strong>
+                            </div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching visitor details:', error);
+                    document.getElementById('modalContent').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            <strong>Error loading visitor details</strong><br/>
+                            <small class="text-danger">${error.message}</small><br/>
+                            <small>Please check browser console (F12) for more details, or contact support.</small>
+                        </div>
+                    `;
+                });
+        }
+
+        function approveVisitor(id, name) {
+            console.log('Approve button clicked. ID:', id, 'Name:', name); // Debug log
+            if (confirm(`Are you sure you want to approve the visitor request for ${name}?`)) {
+                console.log('User confirmed approval'); // Debug log
+                fetch('/Visitor/Approve', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ id: id })
+                })
+                    .then(response => {
+                        console.log('Approve response status:', response.status); // Debug log
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Approve response data:', data); // Debug log
+                        if (data.success) {
+                            detailModal.hide();
+                            alert('Visitor approved successfully!');
+                            location.reload();
+                        } else {
+                            alert('Error: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error approving visitor:', error); // Enhanced log
+                        alert('Error approving visitor: ' + error.message);
+                    });
+            } else {
+                console.log('User cancelled approval'); // Debug log
+            }
+        }
+
+        function showRejectModal(id, name) {
+            currentVisitorId = id;
+            currentVisitorName = name;
+            document.getElementById('rejectVisitorName').textContent = name;
+            document.getElementById('rejectionReason').value = '';
+            rejectModal.show();
+        }
+
+        function confirmReject() {
+            console.log('Reject confirmed. ID:', currentVisitorId); // Debug log
+            const reason = document.getElementById('rejectionReason').value.trim();
+
+            if (!reason) {
+                alert('Please provide a reason for rejection');
+                return;
+            }
+
+            console.log('Sending reject request with reason:', reason); // Debug log
+            fetch('/Visitor/Reject', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id: currentVisitorId, reason: reason })
+            })
+                .then(response => {
+                    console.log('Reject response status:', response.status); // Debug log
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Reject response data:', data); // Debug log
+                    if (data.success) {
+                        rejectModal.hide();
+                        alert('Visitor request rejected');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error rejecting visitor:', error); // Enhanced log
+                    alert('Error rejecting visitor: ' + error.message);
+                });
+        }
+    </script>
+}

@@ -1,0 +1,90 @@
+@model VisitorManagementSystemMoD.Models.ViewModels.DepartmentViewModel
+@{
+    ViewData["Title"] = "Edit Department";
+}
+
+@section Breadcrumb {
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="@Url.Action("Index", "Dashboard")"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="@Url.Action("Administration", "Dashboard")"><i class="fas fa-cogs"></i> Administration</a></li>
+            <li class="breadcrumb-item"><a href="@Url.Action("Index", "DepartmentManagement")">Department Management</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Edit Department</li>
+        </ol>
+    </nav>
+}
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="fas fa-edit me-2 text-primary"></i>Edit Department</h2>
+        <p class="text-muted mb-0 small">Update department details and settings</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 offset-lg-2">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <form asp-action="Edit" method="post">
+                    <input type="hidden" asp-for="Id" />
+
+                    <!-- Department Details Section -->
+                    <h6 class="fw-semibold text-muted text-uppercase mb-3" style="font-size:0.7rem;letter-spacing:0.5px;">
+                        <i class="fas fa-building me-1"></i>Department Details
+                    </h6>
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Name" class="form-label small fw-semibold">Department Name <span class="text-danger">*</span></label>
+                            <input asp-for="Name" class="form-control form-control-sm" placeholder="e.g., Human Resources, IT, Sales" />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                            <small class="form-text text-muted">Unique name (max 100 characters)</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Code" class="form-label small fw-semibold">Department Code</label>
+                            <input asp-for="Code" class="form-control form-control-sm" placeholder="e.g., HR, IT, SALES" />
+                            <span asp-validation-for="Code" class="text-danger small"></span>
+                            <small class="form-text text-muted">Optional short code (max 50 characters)</small>
+                        </div>
+                    </div>
+
+                    <!-- Additional Info Section -->
+                    <h6 class="fw-semibold text-muted text-uppercase mb-3" style="font-size:0.7rem;letter-spacing:0.5px;">
+                        <i class="fas fa-info-circle me-1"></i>Additional Information
+                    </h6>
+                    <div class="mb-4">
+                        <label asp-for="Description" class="form-label small fw-semibold">Description</label>
+                        <textarea asp-for="Description" class="form-control form-control-sm" rows="3"
+                                  placeholder="Describe the department's role and responsibilities"></textarea>
+                        <span asp-validation-for="Description" class="text-danger small"></span>
+                        <small class="form-text text-muted">Optional (max 200 characters)</small>
+                    </div>
+
+                    <div asp-validation-summary="All" class="text-danger small mb-3"></div>
+
+                    <!-- Actions -->
+                    <div class="d-flex justify-content-end gap-2 pt-2 border-top">
+                        <a href="@Url.Action("Index", "DepartmentManagement")" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-sm btn-primary">
+                            <i class="fas fa-save me-1"></i>Update Department
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        @if (ViewBag.UserCount > 0 || ViewBag.VisitorCount > 0)
+        {
+            <div class="alert mt-3 small border-0 shadow-sm" style="background:#eff6ff;color:#1e40af;">
+                <i class="fas fa-info-circle me-1"></i> <strong>Current Usage:</strong>
+                Users assigned: <strong>@ViewBag.UserCount</strong> · Visitors tracked: <strong>@ViewBag.VisitorCount</strong>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

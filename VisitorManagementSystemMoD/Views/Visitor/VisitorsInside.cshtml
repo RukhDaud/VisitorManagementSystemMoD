@@ -1,0 +1,173 @@
+@model IEnumerable<VisitorManagementSystemMoD.Models.Visitor>
+@{
+    ViewData["Title"] = "Visitors Inside";
+}
+
+@section Breadcrumb {
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="@Url.Action("Index", "Dashboard")"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="@Url.Action("AllVisitors", "Visitor")">All Visitors</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Visitors Inside</li>
+        </ol>
+    </nav>
+}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="display-6 fw-bold">
+            <i class="fas fa-sign-in-alt text-primary me-2"></i>Visitors Currently Inside
+        </h1>
+        <p class="text-muted">Visitors who have checked in and are currently on premises</p>
+    </div>
+    <div>
+        <span class="badge bg-primary fs-5">@Model.Count() Visitor(s) Inside</span>
+    </div>
+</div>
+
+@if (Model.Any())
+{
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Visitor</th>
+                            <th>CNIC</th>
+                            <th>Phone</th>
+                            <th>Host</th>
+                            <th>Purpose</th>
+                            <th>Check-In Time</th>
+                            <th>Duration</th>
+                            <th>Vehicle</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var visitor in Model)
+                        {
+                            var duration = DateTime.Now - visitor.CheckInTime!.Value;
+                            var durationText = duration.TotalHours >= 1 
+                                ? $"{(int)duration.TotalHours}h {duration.Minutes}m" 
+                                : $"{duration.Minutes}m";
+                            
+                            <tr>
+                                <td><strong>@visitor.Name</strong></td>
+                                <td>@visitor.CNIC</td>
+                                <td>@visitor.Phone</td>
+                                <td>@visitor.EmployeeName</td>
+                                <td>@visitor.Purpose</td>
+                                <td>
+                                    <i class="fas fa-clock text-muted me-1"></i>
+                                    @visitor.CheckInTime.Value.ToString("MMM dd, h:mm tt")
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">@durationText</span>
+                                </td>
+                                <td>
+                                    @if (visitor.HasVehicle)
+                                    {
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-car me-1"></i>@visitor.VehicleNumber
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    <button onclick="viewVisitorDetails(@visitor.Id)" class="btn btn-sm btn-outline-primary" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-door-open fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No visitors currently inside</h5>
+            <p class="text-muted">All visitors have checked out</p>
+        </div>
+    </div>
+}
+
+
+
+<!-- Visitor Detail Modal -->
+<div class="modal fade" id="visitorDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Visitor Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalContent">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function viewVisitorDetails(visitorId) {
+            $('#visitorDetailModal').modal('show');
+            $.get('@Url.Action("GetVisitorDetails", "Visitor")', { id: visitorId }, function (response) {
+                if (response.success) {
+                    displayVisitorDetails(response.data);
+                } else {
+                    $('#modalContent').html('<div class="alert alert-danger">Error loading visitor details</div>');
+                }
+            });
+        }
+
+        function displayVisitorDetails(visitor) {
+            const html = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">Personal Information</h6>
+                        <p><strong>Name:</strong> ${visitor.name}</p>
+                        <p><strong>CNIC:</strong> ${visitor.cnic || 'N/A'}</p>
+                        <p><strong>Phone:</strong> ${visitor.phone}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">Visit Information</h6>
+                        <p><strong>Host:</strong> ${visitor.employeeName}</p>
+                        <p><strong>Purpose:</strong> ${visitor.purpose}</p>
+                        <p><strong>Expected Time:</strong> ${visitor.expectedTime}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">Check-In/Out Status</h6>
+                        <p><strong>Check-In:</strong> ${visitor.checkInTime || 'Not checked in'}</p>
+                        <p><strong>Check-Out:</strong> ${visitor.checkOutTime || 'Still inside'}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">Approval Information</h6>
+                        <p><strong>Status:</strong> <span class="badge badge-${visitor.status.toLowerCase()}">${visitor.status}</span></p>
+                        <p><strong>Approved By:</strong> ${visitor.approvedByName || 'N/A'}</p>
+                        ${visitor.rejectionReason ? `<p><strong>Rejection Reason:</strong> ${visitor.rejectionReason}</p>` : ''}
+                    </div>
+                    ${visitor.hasVehicle ? `
+                    <div class="col-12">
+                        <h6 class="text-muted mb-3">Vehicle Information</h6>
+                        <p><strong>Vehicle Number:</strong> ${visitor.vehicleNumber}</p>
+                        <p><strong>Vehicle Type:</strong> ${visitor.vehicleType}</p>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+            $('#modalContent').html(html);
+        }
+    </script>
+}

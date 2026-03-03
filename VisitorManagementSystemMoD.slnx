@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="VisitorManagementSystemMoD.Tests/VisitorManagementSystemMoD.Tests.csproj" />
+  <Project Path="VisitorManagementSystemMoD/VisitorManagementSystemMoD.csproj" />
+</Solution>

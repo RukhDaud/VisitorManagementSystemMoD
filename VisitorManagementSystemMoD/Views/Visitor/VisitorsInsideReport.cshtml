@@ -1,0 +1,112 @@
+@model IEnumerable<VisitorManagementSystemMoD.Models.Visitor>
+@{
+    ViewData["Title"] = "Visitors Inside Report";
+    var startDate = ViewBag.StartDate as DateTime?;
+    var endDate = ViewBag.EndDate as DateTime?;
+}
+
+<div class="mb-4">
+    <h1 class="display-6 fw-bold">Visitors Inside After Office Hours Report</h1>
+    <p class="text-muted">View visitors who stayed inside after 4:00 PM</p>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label for="startDate" class="form-label">Start Date</label>
+                <input type="date" class="form-control" id="startDate" name="startDate" value="@startDate?.ToString("yyyy-MM-dd")">
+            </div>
+            <div class="col-md-4">
+                <label for="endDate" class="form-label">End Date</label>
+                <input type="date" class="form-control" id="endDate" name="endDate" value="@endDate?.ToString("yyyy-MM-dd")">
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-2"></i>Generate Report
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (Model != null && Model.Any())
+{
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-file-alt me-2"></i>Report Results (@Model.Count() visitors)
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Visitor Name</th>
+                            <th>Host</th>
+                            <th>Check-in Time</th>
+                            <th>Check-out Time</th>
+                            <th>Duration After 4PM</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var visitor in Model)
+                        {
+                            var checkInTime = visitor.CheckInTime!.Value;
+                            var checkOutTime = visitor.CheckOutTime ?? DateTime.Now;
+                            var afterFourPM = new DateTime(checkInTime.Year, checkInTime.Month, checkInTime.Day, 16, 0, 0);
+                            var duration = checkOutTime > afterFourPM ? (checkOutTime - afterFourPM).ToString(@"hh\:mm") : "-";
+
+                            <tr>
+                                <td><strong>@visitor.Name</strong></td>
+                                <td>@visitor.EmployeeName</td>
+                                <td>@visitor.CheckInTime.Value.ToString("MMM dd, h:mm tt")</td>
+                                <td>
+                                    @if (visitor.CheckOutTime.HasValue)
+                                    {
+                                        @visitor.CheckOutTime.Value.ToString("MMM dd, h:mm tt")
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning">Still Inside</span>
+                                    }
+                                </td>
+                                <td><strong>@duration</strong></td>
+                                <td>
+                                    @if (!visitor.CheckOutTime.HasValue)
+                                    {
+                                        <span class="badge bg-danger">Still Inside</span>
+                                    }
+                                    else if (visitor.CheckOutTime.Value.TimeOfDay > new TimeSpan(16, 0, 0))
+                                    {
+                                        <span class="badge bg-warning">Left After 4PM</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3 text-end">
+        <button onclick="window.print()" class="btn btn-outline-primary">
+            <i class="fas fa-print me-2"></i>Print Report
+        </button>
+    </div>
+}
+else if (startDate.HasValue || endDate.HasValue)
+{
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>No visitors found for the selected date range.
+    </div>
+}
+else
+{
+    <div class="alert alert-warning">
+        <i class="fas fa-calendar me-2"></i>Please select a date range to generate the report.
+    </div>
+}

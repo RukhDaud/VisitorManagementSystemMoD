@@ -1,0 +1,452 @@
+@model List<VisitorManagementSystemMoD.Models.Role>
+@{
+    ViewData["Title"] = "Role Management";
+}
+
+@section Breadcrumb {
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="@Url.Action("Index", "Dashboard")"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="@Url.Action("Administration", "Dashboard")"><i class="fas fa-cogs"></i> Administration</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Role Management</li>
+        </ol>
+    </nav>
+}
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="fas fa-user-shield me-2" style="color:#7c3aed;"></i>Role Management</h2>
+        <p class="text-muted mb-0 small">Manage system roles and permissions</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="@Url.Action("Administration", "Dashboard")" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i>Administration
+        </a>
+        <a href="@Url.Action("Create", "RoleManagement")" class="btn btn-sm text-white" style="background:#7c3aed;">
+            <i class="fas fa-plus me-1"></i>New Role
+        </a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-1"></i> @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-1"></i> @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100 kpi-card" style="background: linear-gradient(135deg, #ede9fe 0%, #a78bfa 100%); cursor:pointer;" data-bs-toggle="modal" data-bs-target="#AllRolesModal">
+            <div class="card-body p-3 text-center">
+                <p class="fw-semibold mb-1 small" style="color:#a78bfa;">Total Roles</p>
+                <h3 class="fw-bold mb-0" style="color:#a78bfa;">@Model.Count</h3>
+                <small class="mt-1 d-block" style="color:#a78bfa; font-size: 0.7rem;">View all roles →</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100 kpi-card" style="background: linear-gradient(135deg, #dbeafe 0%, #93c5fd 100%); cursor:pointer;" data-bs-toggle="modal" data-bs-target="#AllRoleUsersModal">
+            <div class="card-body p-3 text-center">
+                <p class="text-primary fw-semibold mb-1 small">Total Users</p>
+                <h3 class="fw-bold mb-0 text-primary">@Model.Sum(r => r.Users.Count)</h3>
+                <small class="text-primary mt-1 d-block" style="font-size: 0.7rem;">View all users →</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100 kpi-card" style="background: linear-gradient(135deg, #d1fae5 0%, #6ee7b7 100%); cursor:pointer;" data-bs-toggle="modal" data-bs-target="#AvgUsersModal">
+            <div class="card-body p-3 text-center">
+                <p class="fw-semibold mb-1 small" style="color:#6ee7b7;">Avg Users/Role</p>
+                <h3 class="fw-bold mb-0" style="color:#6ee7b7;">@(Model.Count > 0 ? (Model.Sum(r => r.Users.Count) / (double)Model.Count).ToString("F1") : "0")</h3>
+                <small class="mt-1 d-block" style="color:#6ee7b7; font-size: 0.7rem;">View breakdown →</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card shadow-sm mb-4 border-0">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-6">
+                <label class="form-label small fw-semibold mb-1">Search</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" id="roleSearch" class="form-control" placeholder="Search roles...">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-semibold mb-1">Sort By</label>
+                <select id="roleSort" class="form-select form-select-sm">
+                    <option value="name">Name (A-Z)</option>
+                    <option value="users-desc">Most Users</option>
+                    <option value="users-asc">Least Users</option>
+                    <option value="date">Newest First</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary btn-sm w-100" onclick="resetRoleFilters()" title="Reset">
+                    <i class="fas fa-undo me-1"></i>Reset
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Role Cards Grid -->
+<div class="row g-3 mb-4" id="roleCardsContainer">
+    @foreach (var role in Model)
+    {
+        <div class="col-md-6 col-lg-4 role-card" 
+             data-name="@role.Name.ToLower()" 
+             data-users="@role.Users.Count" 
+             data-date="@role.CreatedAt.ToString("yyyy-MM-dd")">
+            <div class="card border-0 shadow-sm h-100" style="transition: all 0.3s ease;">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-semibold"
+                                 style="width:36px;height:36px;font-size:0.8rem;background:linear-gradient(135deg,#7c3aed,#a78bfa);">
+                                <i class="fas fa-shield-alt" style="font-size:0.75rem;"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-semibold mb-0">@role.Name</h6>
+                                <small class="text-muted">Created @role.CreatedAt.ToString("MMM dd, yyyy")</small>
+                            </div>
+                        </div>
+                        @if (role.Name == "SuperAdmin")
+                        {
+                            <span class="badge" style="background:#fef2f2;color:#dc2626;font-size:0.6rem;font-weight:500;">System</span>
+                        }
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-between mb-3 px-2 py-2 rounded" style="background:#f8f9fc;">
+                        <span class="small text-muted"><i class="fas fa-users me-1"></i>Users assigned</span>
+                        <span class="badge rounded-pill" style="background:#eff6ff;color:#1d4ed8;font-weight:600;">@role.Users.Count</span>
+                    </div>
+
+                    @if (role.Users.Any())
+                    {
+                        <div class="mb-3" style="max-height:80px;overflow-y:auto;">
+                            @foreach (var user in role.Users.Take(3))
+                            {
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center text-white"
+                                         style="width:22px;height:22px;font-size:0.55rem;background:linear-gradient(135deg,#60a5fa,#a78bfa);">
+                                        @user.Name.Substring(0, 1).ToUpper()
+                                    </div>
+                                    <span class="small @(user.IsActive ? "" : "text-muted")">@user.Name</span>
+                                    @if (user.IsActive)
+                                    {
+                                        <span class="badge rounded-pill" style="background:#dcfce7;color:#166534;font-size:0.55rem;font-weight:500;">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge rounded-pill" style="background:#f1f5f9;color:#64748b;font-size:0.55rem;font-weight:500;">Inactive</span>
+                                    }
+                                </div>
+                            }
+                            @if (role.Users.Count > 3)
+                            {
+                                <small class="text-muted">+@(role.Users.Count - 3) more...</small>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-2 mb-3">
+                            <small class="text-muted"><i class="fas fa-user-slash me-1"></i>No users assigned</small>
+                        </div>
+                    }
+
+                    <div class="d-flex gap-2">
+                        @if (role.Name != "SuperAdmin")
+                        {
+                            <a href="@Url.Action("Edit", "RoleManagement", new { id = role.Id })" 
+                               class="btn btn-sm btn-outline-primary flex-grow-1" style="font-size:0.75rem;">
+                                <i class="fas fa-cog me-1"></i>Manage
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-danger" style="font-size:0.75rem;"
+                                    onclick="deleteRole(@role.Id, '@role.Name')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        }
+                        else
+                        {
+                            <div class="btn btn-sm btn-outline-secondary flex-grow-1 disabled" style="font-size:0.75rem;">
+                                <i class="fas fa-lock me-1"></i>Protected
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (!Model.Any())
+{
+    <div class="text-center py-5 text-muted">
+        <i class="fas fa-user-shield fa-3x mb-3 d-block" style="color:#d1d5db;"></i>
+        <p>No roles found. Create your first role to get started.</p>
+        <a href="@Url.Action("Create", "RoleManagement")" class="btn btn-sm text-white" style="background:#7c3aed;">
+            <i class="fas fa-plus me-1"></i>Create Role
+        </a>
+    </div>
+}
+
+<div class="text-center mt-2 mb-3">
+    <a href="@Url.Action("Administration", "Dashboard")" class="text-muted small text-decoration-none">
+        <i class="fas fa-arrow-left me-1"></i>Back to Administration
+    </a>
+</div>
+
+<!-- All Roles Modal -->
+<div class="modal fade" id="AllRolesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-user-shield me-2" style="color:#5b21b6;"></i>All Roles</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-hover">
+                        <thead class="table-light" style="position: sticky; top: 0;">
+                            <tr>
+                                <th>Role</th>
+                                <th>Users Assigned</th>
+                                <th>Created</th>
+                                <th>Type</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var role in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center text-white"
+                                                 style="width:28px;height:28px;font-size:0.6rem;background:linear-gradient(135deg,#7c3aed,#a78bfa);">
+                                                <i class="fas fa-shield-alt" style="font-size:0.6rem;"></i>
+                                            </div>
+                                            <strong>@role.Name</strong>
+                                        </div>
+                                    </td>
+                                    <td><span class="badge rounded-pill" style="background:#eff6ff;color:#1d4ed8;font-weight:600;">@role.Users.Count</span></td>
+                                    <td class="text-muted" style="font-size:0.8rem;">@role.CreatedAt.ToString("MMM dd, yyyy")</td>
+                                    <td>
+                                        @if (role.Name == "SuperAdmin")
+                                        {
+                                            <span class="badge" style="background:#fef2f2;color:#dc2626;font-size:0.65rem;font-weight:500;">System</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge" style="background:#f0fdf4;color:#166534;font-size:0.65rem;font-weight:500;">Custom</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <span class="me-auto text-muted small">Total: @Model.Count role(s)</span>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- All Users by Role Modal -->
+<div class="modal fade" id="AllRoleUsersModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-users me-2 text-primary"></i>All Users by Role</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="max-height: 450px; overflow-y: auto;">
+                @foreach (var role in Model.OrderBy(r => r.Name))
+                {
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center justify-content-between mb-2 px-2 py-2 rounded" style="background:#f8f9fc;">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white"
+                                     style="width:26px;height:26px;font-size:0.6rem;background:linear-gradient(135deg,#7c3aed,#a78bfa);">
+                                    <i class="fas fa-shield-alt" style="font-size:0.55rem;"></i>
+                                </div>
+                                <span class="fw-semibold small">@role.Name</span>
+                            </div>
+                            <span class="badge rounded-pill" style="background:#dbeafe;color:#1d4ed8;font-weight:600;font-size:0.7rem;">@role.Users.Count</span>
+                        </div>
+                        @if (role.Users.Any())
+                        {
+                            <div class="ps-4">
+                                @foreach (var user in role.Users)
+                                {
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white"
+                                             style="width:22px;height:22px;font-size:0.55rem;background:linear-gradient(135deg,#60a5fa,#a78bfa);">@user.Name.Substring(0, 1).ToUpper()</div>
+                                        <span class="small @(user.IsActive ? "" : "text-muted")">@user.Name</span>
+                                        <span class="text-muted" style="font-size:0.7rem;">@@@user.Username</span>
+                                        @if (user.IsActive)
+                                        {
+                                            <span class="badge rounded-pill" style="background:#dcfce7;color:#166534;font-size:0.55rem;font-weight:500;">Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge rounded-pill" style="background:#f1f5f9;color:#64748b;font-size:0.55rem;font-weight:500;">Inactive</span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="ps-4"><small class="text-muted"><i class="fas fa-user-slash me-1"></i>No users assigned</small></div>
+                        }
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <span class="me-auto text-muted small">@Model.Sum(r => r.Users.Count) user(s) across @Model.Count role(s)</span>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Avg Users/Role Breakdown Modal -->
+<div class="modal fade" id="AvgUsersModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-chart-bar me-2" style="color:#059669;"></i>Users per Role Breakdown</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                @{ var totalRoleUsers = Model.Sum(r => r.Users.Count); }
+                @foreach (var role in Model.OrderByDescending(r => r.Users.Count))
+                {
+                    var pct = totalRoleUsers > 0 ? (role.Users.Count * 100.0 / totalRoleUsers) : 0;
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small fw-semibold">@role.Name</span>
+                            <span class="small text-muted">@role.Users.Count user(s) · @pct.ToString("F0")%</span>
+                        </div>
+                        <div class="progress" style="height: 8px; border-radius: 4px;">
+                            <div class="progress-bar" role="progressbar" style="width: @pct.ToString("F0")%; background: linear-gradient(135deg, #7c3aed, #a78bfa); border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                }
+                <hr />
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="small fw-semibold">Average</span>
+                    <span class="badge rounded-pill" style="background:#d1fae5;color:#059669;font-weight:600;">@(Model.Count > 0 ? (totalRoleUsers / (double)Model.Count).ToString("F1") : "0") users/role</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <span class="me-auto text-muted small">@totalRoleUsers user(s) · @Model.Count role(s)</span>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function deleteRole(id, name) {
+            if (confirm('Are you sure you want to delete the role "' + name + '"?\n\nThis action cannot be undone. Users assigned to this role will lose their access.')) {
+                $.ajax({
+                    url: '@Url.Action("Delete", "RoleManagement")',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ id: id }),
+                    success: function (response) {
+                        if (response.success) {
+                            window.location.reload();
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
+                    },
+                    error: function () {
+                        alert('An error occurred while deleting the role.');
+                    }
+                });
+            }
+        }
+
+        function resetRoleFilters() {
+            $('#roleSearch').val('');
+            $('#roleSort').val('name');
+            filterRoles();
+        }
+
+        function filterRoles() {
+            var search = $('#roleSearch').val().toLowerCase();
+            var visible = 0;
+
+            $('#roleCardsContainer .role-card').each(function () {
+                var name = $(this).data('name') || '';
+                if (!search || name.includes(search)) {
+                    $(this).show();
+                    visible++;
+                } else {
+                    $(this).hide();
+                }
+            });
+
+            sortRoles();
+        }
+
+        function sortRoles() {
+            var sortVal = $('#roleSort').val();
+            var container = $('#roleCardsContainer');
+            var cards = container.find('.role-card').toArray();
+
+            cards.sort(function (a, b) {
+                switch (sortVal) {
+                    case 'name':
+                        return $(a).data('name').localeCompare($(b).data('name'));
+                    case 'users-desc':
+                        return $(b).data('users') - $(a).data('users');
+                    case 'users-asc':
+                        return $(a).data('users') - $(b).data('users');
+                    case 'date':
+                        return $(b).data('date').localeCompare($(a).data('date'));
+                    default:
+                        return 0;
+                }
+            });
+
+            cards.forEach(function (card) { container.append(card); });
+        }
+
+        $(document).ready(function () {
+            $('#roleSearch').on('input', function () { filterRoles(); });
+            $('#roleSort').on('change', function () { sortRoles(); });
+        });
+    </script>
+
+    <style>
+        .role-card .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+        }
+        .kpi-card { transition: all 0.3s ease; }
+        .kpi-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.12) !important; }
+    </style>
+}

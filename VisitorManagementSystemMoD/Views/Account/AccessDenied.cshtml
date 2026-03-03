@@ -1,0 +1,94 @@
+@{
+    ViewData["Title"] = "Access Denied";
+    var userRole = ViewBag.UserRole as string;
+    var userName = ViewBag.UserName as string;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access Denied - Visitor Management System</title>
+    <script src="~/lib/tailwindcss/tailwind.min.js"></script>
+    <script src="~/lib/iconify/iconify-icon.min.js"></script>
+    <link href="~/lib/inter-font/inter.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-2xl w-full">
+        <!-- Card -->
+        <div class="bg-white rounded-3xl shadow-xl p-8 sm:p-12 text-center">
+            <!-- Icon -->
+            <div class="inline-flex items-center justify-center w-24 h-24 bg-red-100 rounded-full mb-6">
+                <iconify-icon icon="solar:shield-warning-bold" class="text-5xl text-red-600"></iconify-icon>
+            </div>
+
+            <!-- Heading -->
+            <h1 class="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">Access Denied</h1>
+            <p class="text-lg text-slate-600 mb-8">
+                You don't have permission to access this resource.
+            </p>
+
+            <!-- User Info -->
+            @if (!string.IsNullOrEmpty(userName) && !string.IsNullOrEmpty(userRole))
+            {
+                <div class="bg-slate-50 rounded-xl p-6 mb-8 border border-slate-200">
+                    <div class="flex items-center justify-center gap-2 mb-3">
+                        <iconify-icon icon="solar:user-circle-bold" class="text-2xl text-slate-600"></iconify-icon>
+                        <p class="text-sm font-semibold text-slate-700">Current User Information</p>
+                    </div>
+                    <p class="text-slate-900 font-semibold mb-1">@userName</p>
+                    <p class="text-sm text-slate-600">Role: <span class="font-medium text-slate-800">@userRole</span></p>
+                </div>
+            }
+
+            <!-- Message -->
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-8">
+                <div class="flex items-start gap-3">
+                    <iconify-icon icon="solar:info-circle-bold" class="text-2xl text-amber-600 flex-shrink-0 mt-0.5"></iconify-icon>
+                    <div class="text-left">
+                        <p class="font-semibold text-amber-900 mb-2">Why am I seeing this?</p>
+                        <ul class="text-sm text-amber-800 space-y-1 list-disc list-inside">
+                            <li>Your role (@(userRole ?? "Unknown")) doesn't have permission for this action</li>
+                            <li>You may need elevated privileges to access this feature</li>
+                            <li>Some features are restricted to specific roles only</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="space-y-3">
+                <a asp-controller="Dashboard" asp-action="Index" class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-medium transition-all duration-200 shadow-sm">
+                    <iconify-icon icon="solar:home-2-bold" class="text-xl"></iconify-icon>
+                    Go to Dashboard
+                </a>
+                
+                <button onclick="history.back()" class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-white hover:bg-slate-50 text-slate-700 rounded-xl font-medium transition-all duration-200 border border-slate-200">
+                    <iconify-icon icon="solar:arrow-left-bold" class="text-xl"></iconify-icon>
+                    Go Back
+                </button>
+            </div>
+
+            <!-- Help Text -->
+            <div class="mt-8 pt-6 border-t border-slate-200">
+                <p class="text-sm text-slate-500">
+                    Need access to this feature? Contact your <strong class="text-slate-700">System Administrator</strong> or <strong class="text-slate-700">SuperAdmin</strong> to request permission.
+                </p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-6">
+            <p class="text-sm text-slate-500">
+                ©2026 Visitor Management System MoD
+            </p>
+        </div>
+    </div>
+</body>
+</html>
