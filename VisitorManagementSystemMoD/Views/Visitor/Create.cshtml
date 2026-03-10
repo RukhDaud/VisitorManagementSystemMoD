@@ -2,6 +2,8 @@
 @model VisitorManagementSystemMoD.Models.ViewModels.BulkVisitorViewModel
 @{
     ViewData["Title"] = "Create Visitor Request";
+    var isSectionOfficer = (bool)(ViewBag.IsSectionOfficer ?? false);
+    var employees = ViewBag.Employees as List<VisitorManagementSystemMoD.Models.DepartmentEmployee> ?? new List<VisitorManagementSystemMoD.Models.DepartmentEmployee>();
 }
 
 @section Breadcrumb {
@@ -15,12 +17,18 @@
 
 <div class="row justify-content-center">
     <div class="col-lg-10">
-        <div class="text-center mb-4">
-            <div class="d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px; border-radius: 20px; background: white; border: 2px solid #e5e7eb; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                <i class="fas fa-user-plus fa-3x text-primary"></i>
+        <div class="d-flex align-items-center mb-3 gap-3">
+            <div class="d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; border-radius: 12px; background: #eff6ff; flex-shrink: 0;">
+                <i class="fas fa-user-plus fa-lg text-primary"></i>
             </div>
-            <h1 class="display-6 fw-bold">Create Visitor Request(s)</h1>
-            <p class="text-muted">Fill in visitor details to request SCO approval. You can add multiple visitors at once!</p>
+            <div>
+                <h4 class="mb-0 fw-bold">New Visitor Request</h4>
+                <small class="text-muted">Add one or more visitors for SCO approval</small>
+                @if (isSectionOfficer)
+                {
+                    <span class="badge bg-info ms-2"><i class="fas fa-users me-1"></i>Section Officer</span>
+                }
+            </div>
         </div>
 
         <form asp-action="Create" method="post" id="bulkVisitorForm">
@@ -39,6 +47,22 @@
                         </div>
                         <div class="card-body p-4">
                             <div class="row g-3">
+                                @if (isSectionOfficer)
+                                {
+                                    <!-- Department Employee Selection (SO only) -->
+                                    <div class="col-12">
+                                        <label class="form-label">On Behalf Of (Employee) *</label>
+                                        <select name="Visitors[@i].DepartmentEmployeeId" class="form-select dept-employee-select" required>
+                                            <option value="">-- Select Employee --</option>
+                                            @foreach (var emp in employees)
+                                            {
+                                                <option value="@emp.Id">@emp.Name</option>
+                                            }
+                                        </select>
+                                        <span class="text-danger small"></span>
+                                    </div>
+                                }
+
                                 <!-- Visitor Name -->
                                 <div class="col-md-6">
                                     <label class="form-label">Visitor Full Name *</label>
@@ -47,31 +71,62 @@
                                 </div>
 
                                 <!-- CNIC -->
-                                <div class="col-md-6">
+                                <div class="col-md-6 cnic-field">
                                     <label class="form-label">CNIC *</label>
-                                    <input name="Visitors[@i].CNIC" class="form-control" placeholder="42101-1234567-1" required />
+                                    @if (isSectionOfficer)
+                                    {
+                                        <input name="Visitors[@i].CNIC" class="form-control cnic-input" placeholder="1234567890123" pattern="\d{13}" minlength="13" maxlength="13" title="CNIC must be exactly 13 digits without dashes or spaces" required />
+                                    }
+                                    else
+                                    {
+                                        <input name="Visitors[@i].CNIC" class="form-control cnic-input" placeholder="42101-1234567-1" pattern="\d{5}-\d{7}-\d{1}" minlength="15" maxlength="15" title="CNIC must be in format XXXXX-XXXXXXX-X (e.g., 42101-1234567-1)" required />
+                                    }
                                     <span class="text-danger small"></span>
                                 </div>
 
                                 <!-- Phone -->
-                                <div class="col-md-6">
+                                <div class="col-md-6 phone-field">
                                     <label class="form-label">Phone Number *</label>
-                                    <input name="Visitors[@i].Phone" class="form-control" placeholder="+92 300-1234567" required />
+                                    <input name="Visitors[@i].Phone" class="form-control phone-input" placeholder="+92 300-1234567" pattern="(\+92[\s-]?)?0?3\d{2}[\s-]?\d{7}" minlength="11" maxlength="20" title="Enter a valid Pakistani phone number (e.g., +92 300-1234567 or 03001234567)" required />
                                     <span class="text-danger small"></span>
                                 </div>
 
                                 <!-- Expected Time -->
-                                <div class="col-md-6">
+                                <div class="col-md-6 expected-time-field">
                                     <label class="form-label">Expected Visit Time *</label>
-                                    <input name="Visitors[@i].ExpectedTime" type="datetime-local" class="form-control" required />
+                                    <input name="Visitors[@i].ExpectedTime" type="datetime-local" class="form-control expected-time-input" required />
                                     <span class="text-danger small"></span>
                                 </div>
 
                                 <!-- Purpose -->
-                                <div class="col-12">
+                                <div class="col-md-6 purpose-field">
                                     <label class="form-label">Purpose of Visit *</label>
-                                    <textarea name="Visitors[@i].Purpose" class="form-control" rows="2" placeholder="Business Meeting / Document Submission / Interview etc." required></textarea>
+                                    <div class="purpose-chips mb-2 d-flex flex-wrap gap-1">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary purpose-chip">Interview</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary purpose-chip">Business Meeting</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary purpose-chip">Conference</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary purpose-chip">Document Submission</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary purpose-chip">Official Work</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary purpose-chip">Personal Visit</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary purpose-chip">Delivery</button>
+                                    </div>
+                                    <input name="Visitors[@i].Purpose" type="text" class="form-control purpose-input" placeholder="Or type a custom purpose..." required />
                                     <span class="text-danger small"></span>
+                                </div>
+
+                                <!-- Destination (Department) -->
+                                <div class="col-md-6 department-field">
+                                    <label class="form-label">Destination (Department) <span class="req-star"></span></label>
+                                    <select name="Visitors[@i].DepartmentId" class="form-select dept-select">
+                                        <option value="">Select destination</option>
+                                        @if (ViewBag.Departments != null)
+                                        {
+                                            @foreach (var dept in (List<VisitorManagementSystemMoD.Models.Department>)ViewBag.Departments)
+                                            {
+                                                <option value="@dept.Id">@dept.Name</option>
+                                            }
+                                        }
+                                    </select>
                                 </div>
 
                                 <!-- Has Vehicle Switch -->
@@ -127,18 +182,12 @@
             <div class="card">
                 <div class="card-body">
                     <div class="d-flex gap-3">
-                        <button type="submit" class="btn btn-primary flex-grow-1 btn-lg" style="background: #3b82f6; border: none; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);">
-                            <i class="fas fa-paper-plane me-2"></i>Submit All for SCO Approval
+                        <button type="submit" class="btn btn-primary flex-grow-1" style="background: #3b82f6; border: none; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);">
+                            <i class="fas fa-paper-plane me-2"></i>Submit for Approval
                         </button>
-                        <a asp-action="MyVisitors" class="btn btn-outline-secondary btn-lg">
+                        <a asp-action="MyVisitors" class="btn btn-outline-secondary">
                             Cancel
                         </a>
-                    </div>
-
-                    <!-- Note -->
-                    <div class="alert alert-info mt-3 mb-0">
-                        <strong><i class="fas fa-info-circle me-2"></i>Note:</strong> All visitor requests will be sent to the Chief Security Officer (SCO) for approval.
-                    </div>
                 </div>
             </div>
         </form>
@@ -148,11 +197,39 @@
 @section Scripts {
     <script>
         let visitorCount = @Model.Visitors.Count;
+        const isSectionOfficer = @(isSectionOfficer ? "true" : "false");
+        const departmentsJson = @Html.Raw(Json.Serialize(ViewBag.Departments != null ? ((List<VisitorManagementSystemMoD.Models.Department>)ViewBag.Departments).Select(d => new { d.Id, d.Name }).ToList() : new List<object>()));
+        const employeesJson = @Html.Raw(Json.Serialize(employees.Select(e => new { e.Id, e.Name }).ToList()));
+        function getDeptOptions() {
+            let opts = '<option value="">Select destination</option>';
+            departmentsJson.forEach(d => { opts += `<option value="${d.id}">${d.name}</option>`; });
+            return opts;
+        }
+        function getEmployeeOptions() {
+            let opts = '<option value="">-- Select Employee --</option>';
+            employeesJson.forEach(e => { opts += `<option value="${e.id}">${e.name}</option>`; });
+            return opts;
+        }
 
         // Add Visitor Button Click
         document.getElementById('addVisitorBtn').addEventListener('click', function () {
             const container = document.getElementById('visitorsContainer');
             const newIndex = visitorCount;
+
+            const empDropdownHtml = isSectionOfficer ? `
+                            <div class="col-12">
+                                <label class="form-label">On Behalf Of (Employee) *</label>
+                                <select name="Visitors[${newIndex}].DepartmentEmployeeId" class="form-select dept-employee-select" required>
+                                    ${getEmployeeOptions()}
+                                </select>
+                                <span class="text-danger small"></span>
+                            </div>` : '';
+
+            const cnicPlaceholder = isSectionOfficer ? '1234567890123' : '42101-1234567-1';
+            const cnicPattern = isSectionOfficer ? '\\d{13}' : '\\d{5}-\\d{7}-\\d{1}';
+            const cnicMinLen = isSectionOfficer ? 13 : 15;
+            const cnicMaxLen = isSectionOfficer ? 13 : 15;
+            const cnicTitle = isSectionOfficer ? 'CNIC must be exactly 13 digits without dashes or spaces' : 'CNIC must be in format XXXXX-XXXXXXX-X (e.g., 42101-1234567-1)';
 
             const visitorHtml = `
                 <div class="visitor-entry card mb-3" data-index="${newIndex}">
@@ -166,25 +243,41 @@
                     </div>
                     <div class="card-body p-4">
                         <div class="row g-3">
+                            ${empDropdownHtml}
                             <div class="col-md-6">
                                 <label class="form-label">Visitor Full Name *</label>
                                 <input name="Visitors[${newIndex}].Name" class="form-control" placeholder="Ahmed Khan" required />
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-6 cnic-field">
                                 <label class="form-label">CNIC *</label>
-                                <input name="Visitors[${newIndex}].CNIC" class="form-control" placeholder="42101-1234567-1" required />
+                                <input name="Visitors[${newIndex}].CNIC" class="form-control cnic-input" placeholder="${cnicPlaceholder}" pattern="${cnicPattern}" minlength="${cnicMinLen}" maxlength="${cnicMaxLen}" title="${cnicTitle}" required />
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-6 phone-field">
                                 <label class="form-label">Phone Number *</label>
-                                <input name="Visitors[${newIndex}].Phone" class="form-control" placeholder="+92 300-1234567" required />
+                                <input name="Visitors[${newIndex}].Phone" class="form-control phone-input" placeholder="+92 300-1234567" pattern="(\+92[\s-]?)?0?3\d{2}[\s-]?\d{7}" minlength="11" maxlength="20" title="Enter a valid Pakistani phone number (e.g., +92 300-1234567 or 03001234567)" required />
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-6 expected-time-field">
                                 <label class="form-label">Expected Visit Time *</label>
-                                <input name="Visitors[${newIndex}].ExpectedTime" type="datetime-local" class="form-control" required />
+                                <input name="Visitors[${newIndex}].ExpectedTime" type="datetime-local" class="form-control expected-time-input" required />
                             </div>
-                            <div class="col-12">
+                            <div class="col-md-6 purpose-field">
                                 <label class="form-label">Purpose of Visit *</label>
-                                <textarea name="Visitors[${newIndex}].Purpose" class="form-control" rows="2" placeholder="Business Meeting / Document Submission / Interview etc." required></textarea>
+                                <div class="purpose-chips mb-2 d-flex flex-wrap gap-1">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary purpose-chip">Interview</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary purpose-chip">Business Meeting</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary purpose-chip">Conference</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary purpose-chip">Document Submission</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary purpose-chip">Official Work</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary purpose-chip">Personal Visit</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary purpose-chip">Delivery</button>
+                                </div>
+                                <input name="Visitors[${newIndex}].Purpose" type="text" class="form-control purpose-input" placeholder="Or type a custom purpose..." required />
+                            </div>
+                            <div class="col-md-6 department-field">
+                                <label class="form-label">Destination (Department)</label>
+                                <select name="Visitors[${newIndex}].DepartmentId" class="form-select dept-select">
+                                    ${getDeptOptions()}
+                                </select>
                             </div>
                             <div class="col-12">
                                 <div class="card" style="background-color: #dbeafe; border-color: #93c5fd;">
@@ -228,7 +321,10 @@
             updateVisitorNumbers();
             updateRemoveButtons();
             attachVehicleToggleEvents();
-            attachDateTimeCloseEvents(); // Attach to newly added datetime inputs
+            attachPurposeChipEvents();
+            attachDateTimeCloseEvents();
+            attachCnicBlockedCheckEvents();
+            if (isSectionOfficer) { attachEmployeeSelectEvents(); }
         });
 
         // Remove Visitor
@@ -280,10 +376,38 @@
             });
         }
 
+        // SO employee dropdown: no special handling needed
+        function attachEmployeeSelectEvents() {
+            // Employee selection no longer changes field requirements
+        }
+
+        // Purpose chip click handler
+        function attachPurposeChipEvents() {
+            document.querySelectorAll('.purpose-chip').forEach(function (chip) {
+                chip.removeEventListener('click', handlePurposeChipClick);
+                chip.addEventListener('click', handlePurposeChipClick);
+            });
+        }
+
+        function handlePurposeChipClick() {
+            const field = this.closest('.purpose-field');
+            const input = field.querySelector('.purpose-input');
+            // Deselect siblings
+            field.querySelectorAll('.purpose-chip').forEach(c => c.classList.remove('active', 'btn-primary'));
+            field.querySelectorAll('.purpose-chip').forEach(c => c.classList.add('btn-outline-secondary'));
+            // Select this chip
+            this.classList.remove('btn-outline-secondary');
+            this.classList.add('active', 'btn-primary');
+            input.value = this.textContent.trim();
+        }
+
         // Initialize on page load
         attachVehicleToggleEvents();
+        attachPurposeChipEvents();
         updateRemoveButtons();
         attachDateTimeCloseEvents();
+        attachCnicBlockedCheckEvents();
+        if (isSectionOfficer) { attachEmployeeSelectEvents(); }
 
         // Auto-close datetime picker on selection
         function attachDateTimeCloseEvents() {
@@ -292,6 +416,40 @@
                     this.blur(); // Close the picker by removing focus
                 });
             });
+        }
+
+        // Blocked CNIC check on blur
+        function attachCnicBlockedCheckEvents() {
+            document.querySelectorAll('.cnic-input').forEach(function (input) {
+                input.removeEventListener('blur', handleCnicBlockedCheck);
+                input.addEventListener('blur', handleCnicBlockedCheck);
+            });
+        }
+
+        function handleCnicBlockedCheck() {
+            const input = this;
+            const card = input.closest('.visitor-entry');
+            const cnicVal = input.value.trim();
+            // Remove previous blocked warning
+            const existingWarning = card.querySelector('.cnic-blocked-warning');
+            if (existingWarning) existingWarning.remove();
+
+            if (!cnicVal) return;
+
+            fetch(`@Url.Action("CheckBlockedCnic", "Visitor")?cnic=${encodeURIComponent(cnicVal)}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.isBlocked) {
+                        const warning = document.createElement('div');
+                        warning.className = 'cnic-blocked-warning alert alert-danger py-1 px-2 mt-1 mb-0 small d-flex align-items-center gap-2';
+                        warning.innerHTML = `<i class="fas fa-ban"></i> <strong>Blocked:</strong> This CNIC belongs to "${data.blockedName}" and is blocked. Reason: ${data.reason}`;
+                        input.closest('.cnic-field').appendChild(warning);
+                        input.classList.add('is-invalid');
+                    } else {
+                        input.classList.remove('is-invalid');
+                    }
+                })
+                .catch(err => console.error('CNIC check failed:', err));
         }
     </script>
 
@@ -314,6 +472,24 @@
         .remove-visitor:hover {
             background-color: #f8d7da !important;
             color: #dc3545 !important;
+        }
+
+        .purpose-chip {
+            border-radius: 20px;
+            font-size: 0.78rem;
+            padding: 0.25rem 0.75rem;
+            transition: all 0.15s ease;
+            cursor: pointer;
+        }
+
+        .purpose-chip:hover {
+            background: #eff6ff;
+            border-color: #3b82f6;
+            color: #3b82f6;
+        }
+
+        .purpose-chip.active {
+            box-shadow: 0 1px 4px rgba(59, 130, 246, 0.3);
         }
     </style>
 }

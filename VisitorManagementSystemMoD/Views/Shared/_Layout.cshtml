@@ -151,7 +151,8 @@
                             var userRole = Context.Session.GetString("UserRole");
                         }
 
-                        @if (userRole == "Employee")
+                        @if (userRole == "Employee" || userRole == "Section Officer"
+                            || (userRole != "Security Officer" && userRole != "Reception" && userRole != "Admin" && userRole != "SuperAdmin" && userRole != "Barrier Gate"))
                         {
                             <li class="nav-item">
                                 <a class="nav-link" asp-controller="Visitor" asp-action="Create">
@@ -165,6 +166,15 @@
                             </li>
                         }
 
+                        @if (userRole == "Section Officer")
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="DepartmentEmployee" asp-action="MyEmployees">
+                                    <i class="fas fa-id-badge me-1"></i>Employees
+                                </a>
+                            </li>
+                        }
+
                         @if (userRole == "Security Officer" || userRole == "Admin" || userRole == "SuperAdmin")
                         {
                             <li class="nav-item">
@@ -172,9 +182,22 @@
                                     <i class="fas fa-users me-1"></i>All Visitors
                                 </a>
                             </li>
+                            @if (userRole == "SuperAdmin")
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-controller="Dashboard" asp-action="Administration">
+                                        <i class="fas fa-cogs me-1"></i>Administration
+                                    </a>
+                                </li>
+                            }
                             <li class="nav-item">
                                 <a class="nav-link" asp-controller="Dashboard" asp-action="Audit">
                                     <i class="fas fa-clipboard-list me-1"></i>Audit
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="BlockedVisitor" asp-action="Index">
+                                    <i class="fas fa-ban me-1"></i>Blocked
                                 </a>
                             </li>
                         }
@@ -184,6 +207,15 @@
                             <li class="nav-item">
                                 <a class="nav-link" asp-controller="Visitor" asp-action="GateVisitors">
                                     <i class="fas fa-door-open me-1"></i>Visitors
+                                </a>
+                            </li>
+                        }
+
+                        @if (userRole == "Barrier Gate")
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Dashboard" asp-action="Index">
+                                    <i class="fas fa-shield-alt me-1"></i>Dashboard
                                 </a>
                             </li>
                         }

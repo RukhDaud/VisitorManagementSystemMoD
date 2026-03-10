@@ -178,16 +178,30 @@ namespace VisitorManagementSystemMoD.Controllers
                 return Json(new { success = false, message = "Department not found" });
             }
 
-            // Check if department has users or visitors
-            if (department.Users.Any() || department.Visitors.Any())
+            // Unassign department from users and visitors before deleting
+            var userCount = department.Users.Count;
+            var visitorCount = department.Visitors.Count;
+
+            foreach (var user in department.Users)
             {
-                return Json(new { success = false, message = $"Cannot delete department. It has {department.Users.Count} user(s) and {department.Visitors.Count} visitor(s)." });
+                user.DepartmentId = null;
+            }
+
+            foreach (var visitor in department.Visitors)
+            {
+                visitor.DepartmentId = null;
             }
 
             _context.Departments.Remove(department);
             _context.SaveChanges();
 
-            return Json(new { success = true, message = $"Department '{department.Name}' deleted successfully" });
+            var msg = $"Department '{department.Name}' deleted successfully";
+            if (userCount > 0 || visitorCount > 0)
+            {
+                msg += $". {userCount} user(s) and {visitorCount} visitor(s) have been unassigned.";
+            }
+
+            return Json(new { success = true, message = msg });
         }
     }
 }

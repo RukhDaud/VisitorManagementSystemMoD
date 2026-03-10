@@ -1,0 +1,356 @@
+@model List<VisitorManagementSystemMoD.Models.DepartmentEmployee>
+@{
+    ViewData["Title"] = "Employees";
+}
+
+@section Breadcrumb {
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="@Url.Action("Index", "Dashboard")"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Employees</li>
+        </ol>
+    </nav>
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="text-center mb-4">
+            <div class="d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px; border-radius: 20px; background: white; border: 2px solid #e5e7eb; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                <i class="fas fa-id-badge fa-3x text-primary"></i>
+            </div>
+            <h1 class="display-6 fw-bold">Employees</h1>
+            <p class="text-muted">
+                Manage employees for
+                @if (ViewBag.DepartmentName != null)
+                {
+                    <strong>@ViewBag.DepartmentName</strong>
+                }
+                else
+                {
+                    <text>your department</text>
+                }
+                — High-priority employees only require visitor name when creating requests.
+            </p>
+        </div>
+
+        <!-- Add Employee Card -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center" style="background: white; border-bottom: 2px solid #e5e7eb;">
+                <h5 class="mb-0 text-dark"><i class="fas fa-plus-circle me-2 text-success"></i>Add New Employee</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label">Employee Name *</label>
+                        <input type="text" id="newEmployeeName" class="form-control" placeholder="Enter employee name" maxlength="100" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Priority</label>
+                        <select id="newEmployeePriority" class="form-select">
+                            <option value="false">Regular</option>
+                            <option value="true">⚡ High Priority</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" id="addEmployeeBtn" class="btn btn-success w-100">
+                            <i class="fas fa-plus me-1"></i>Add Employee
+                        </button>
+                    </div>
+                </div>
+                <div id="addEmployeeMsg" class="mt-2"></div>
+            </div>
+        </div>
+
+        <!-- Employee List -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center" style="background: white; border-bottom: 2px solid #e5e7eb;">
+                <h5 class="mb-0 text-dark"><i class="fas fa-users me-2 text-primary"></i>Employee List</h5>
+                <span class="badge bg-primary rounded-pill" id="employeeCount">@Model.Count</span>
+            </div>
+            <div class="card-body p-0">
+                @if (!Model.Any())
+                {
+                    <div class="text-center py-5 text-muted" id="emptyState">
+                        <i class="fas fa-users fa-3x mb-3 d-block" style="color: #d1d5db;"></i>
+                        <p class="mb-0">No employees added yet. Add your first employee above!</p>
+                    </div>
+                }
+                <div class="table-responsive" id="employeeTableWrapper" style="@(!Model.Any() ? "display:none;" : "")">
+                    <table class="table table-hover mb-0" id="employeeTable">
+                        <thead style="background: #f8f9fa;">
+                            <tr>
+                                <th class="px-4 py-3">Name</th>
+                                <th class="px-4 py-3 text-center">Priority</th>
+                                <th class="px-4 py-3 text-center">Status</th>
+                                <th class="px-4 py-3 text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var emp in Model)
+                            {
+                                <tr id="emp-row-@emp.Id" class="@(!emp.IsActive ? "table-secondary" : "")">
+                                    <td class="px-4 py-3">
+                                        <span class="emp-name fw-semibold">@emp.Name</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        @if (emp.IsHighPriority)
+                                        {
+                                            <span class="badge bg-danger priority-badge"><i class="fas fa-bolt me-1"></i>High Priority</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary priority-badge">Regular</span>
+                                        }
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        @if (emp.IsActive)
+                                        {
+                                            <span class="badge bg-success status-badge">Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning text-dark status-badge">Inactive</span>
+                                        }
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary btn-edit" data-id="@emp.Id" data-name="@emp.Name" data-hp="@emp.IsHighPriority.ToString().ToLower()" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-outline-warning btn-toggle-priority" data-id="@emp.Id" title="Toggle Priority">
+                                                <i class="fas fa-bolt"></i>
+                                            </button>
+                                            <button class="btn btn-outline-secondary btn-toggle-active" data-id="@emp.Id" title="Toggle Active">
+                                                <i class="fas fa-power-off"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger btn-delete" data-id="@emp.Id" data-name="@emp.Name" title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Edit Employee</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editId" />
+                <div class="mb-3">
+                    <label class="form-label">Employee Name *</label>
+                    <input type="text" id="editName" class="form-control" maxlength="100" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Priority</label>
+                    <select id="editPriority" class="form-select">
+                        <option value="false">Regular</option>
+                        <option value="true">⚡ High Priority</option>
+                    </select>
+                </div>
+                <div id="editMsg"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="saveEditBtn" class="btn btn-primary"><i class="fas fa-save me-1"></i>Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Add Employee
+        document.getElementById('addEmployeeBtn').addEventListener('click', function () {
+            const name = document.getElementById('newEmployeeName').value.trim();
+            const isHighPriority = document.getElementById('newEmployeePriority').value === 'true';
+            const msgDiv = document.getElementById('addEmployeeMsg');
+
+            if (!name) {
+                msgDiv.innerHTML = '<div class="alert alert-danger py-1 small">Employee name is required.</div>';
+                return;
+            }
+
+            fetch('@Url.Action("AddMyEmployee", "DepartmentEmployee")', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, isHighPriority })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    msgDiv.innerHTML = `<div class="alert alert-success py-1 small">${data.message}</div>`;
+                    document.getElementById('newEmployeeName').value = '';
+                    document.getElementById('newEmployeePriority').value = 'false';
+                    // Add row to table
+                    addRowToTable(data.id, data.name, data.isHighPriority);
+                } else {
+                    msgDiv.innerHTML = `<div class="alert alert-danger py-1 small">${data.message}</div>`;
+                }
+                setTimeout(() => msgDiv.innerHTML = '', 3000);
+            });
+        });
+
+        function addRowToTable(id, name, isHP) {
+            const wrapper = document.getElementById('employeeTableWrapper');
+            const emptyState = document.getElementById('emptyState');
+            if (emptyState) emptyState.style.display = 'none';
+            wrapper.style.display = '';
+
+            const tbody = document.querySelector('#employeeTable tbody');
+            const priorityBadge = isHP
+                ? '<span class="badge bg-danger priority-badge"><i class="fas fa-bolt me-1"></i>High Priority</span>'
+                : '<span class="badge bg-secondary priority-badge">Regular</span>';
+
+            const row = `<tr id="emp-row-${id}">
+                <td class="px-4 py-3"><span class="emp-name fw-semibold">${name}</span></td>
+                <td class="px-4 py-3 text-center">${priorityBadge}</td>
+                <td class="px-4 py-3 text-center"><span class="badge bg-success status-badge">Active</span></td>
+                <td class="px-4 py-3 text-center">
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary btn-edit" data-id="${id}" data-name="${name}" data-hp="${isHP}" title="Edit"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-outline-warning btn-toggle-priority" data-id="${id}" title="Toggle Priority"><i class="fas fa-bolt"></i></button>
+                        <button class="btn btn-outline-secondary btn-toggle-active" data-id="${id}" title="Toggle Active"><i class="fas fa-power-off"></i></button>
+                        <button class="btn btn-outline-danger btn-delete" data-id="${id}" data-name="${name}" title="Delete"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr>`;
+            tbody.insertAdjacentHTML('beforeend', row);
+            updateCount();
+        }
+
+        function updateCount() {
+            const count = document.querySelectorAll('#employeeTable tbody tr').length;
+            document.getElementById('employeeCount').textContent = count;
+        }
+
+        // Edit Employee
+        document.addEventListener('click', function (e) {
+            const editBtn = e.target.closest('.btn-edit');
+            if (editBtn) {
+                document.getElementById('editId').value = editBtn.dataset.id;
+                document.getElementById('editName').value = editBtn.dataset.name;
+                document.getElementById('editPriority').value = editBtn.dataset.hp;
+                document.getElementById('editMsg').innerHTML = '';
+                new bootstrap.Modal(document.getElementById('editModal')).show();
+            }
+        });
+
+        document.getElementById('saveEditBtn').addEventListener('click', function () {
+            const id = parseInt(document.getElementById('editId').value);
+            const name = document.getElementById('editName').value.trim();
+            const isHighPriority = document.getElementById('editPriority').value === 'true';
+            const msgDiv = document.getElementById('editMsg');
+
+            if (!name) {
+                msgDiv.innerHTML = '<div class="alert alert-danger py-1 small">Name is required.</div>';
+                return;
+            }
+
+            fetch('@Url.Action("EditMyEmployee", "DepartmentEmployee")', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, name, isHighPriority })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const row = document.getElementById(`emp-row-${id}`);
+                    row.querySelector('.emp-name').textContent = name;
+                    row.querySelector('.priority-badge').outerHTML = isHighPriority
+                        ? '<span class="badge bg-danger priority-badge"><i class="fas fa-bolt me-1"></i>High Priority</span>'
+                        : '<span class="badge bg-secondary priority-badge">Regular</span>';
+                    // Update data attributes on edit button
+                    const btn = row.querySelector('.btn-edit');
+                    btn.dataset.name = name;
+                    btn.dataset.hp = isHighPriority.toString();
+                    bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+                } else {
+                    msgDiv.innerHTML = `<div class="alert alert-danger py-1 small">${data.message}</div>`;
+                }
+            });
+        });
+
+        // Toggle Priority
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('.btn-toggle-priority');
+            if (btn) {
+                const id = btn.dataset.id;
+                fetch(`@Url.Action("ToggleMyEmployeePriority", "DepartmentEmployee")?id=${id}`, { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        const row = document.getElementById(`emp-row-${id}`);
+                        row.querySelector('.priority-badge').outerHTML = data.isHighPriority
+                            ? '<span class="badge bg-danger priority-badge"><i class="fas fa-bolt me-1"></i>High Priority</span>'
+                            : '<span class="badge bg-secondary priority-badge">Regular</span>';
+                        const editBtn = row.querySelector('.btn-edit');
+                        editBtn.dataset.hp = data.isHighPriority.toString();
+                    }
+                });
+            }
+        });
+
+        // Toggle Active
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('.btn-toggle-active');
+            if (btn) {
+                const id = btn.dataset.id;
+                fetch(`@Url.Action("ToggleMyEmployeeActive", "DepartmentEmployee")?id=${id}`, { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        const row = document.getElementById(`emp-row-${id}`);
+                        row.querySelector('.status-badge').outerHTML = data.isActive
+                            ? '<span class="badge bg-success status-badge">Active</span>'
+                            : '<span class="badge bg-warning text-dark status-badge">Inactive</span>';
+                        row.classList.toggle('table-secondary', !data.isActive);
+                    }
+                });
+            }
+        });
+
+        // Delete Employee
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('.btn-delete');
+            if (btn) {
+                const id = btn.dataset.id;
+                const name = btn.dataset.name;
+                if (!confirm(`Delete employee "${name}"? This cannot be undone.`)) return;
+
+                fetch(`@Url.Action("DeleteMyEmployee", "DepartmentEmployee")?id=${id}`, { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById(`emp-row-${id}`).remove();
+                        updateCount();
+                        if (document.querySelectorAll('#employeeTable tbody tr').length === 0) {
+                            document.getElementById('employeeTableWrapper').style.display = 'none';
+                            const emptyState = document.getElementById('emptyState');
+                            if (emptyState) emptyState.style.display = '';
+                        }
+                    } else {
+                        alert(data.message);
+                    }
+                });
+            }
+        });
+    </script>
+
+    <style>
+        .btn-group-sm .btn {
+            padding: 0.25rem 0.5rem;
+        }
+    </style>
+}

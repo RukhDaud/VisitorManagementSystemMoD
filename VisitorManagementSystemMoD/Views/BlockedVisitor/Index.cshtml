@@ -1,0 +1,244 @@
+@model List<VisitorManagementSystemMoD.Models.BlockedVisitor>
+@{
+    ViewData["Title"] = "Blocked Visitors";
+    var userRole = ViewBag.UserRole as string;
+    var canEdit = userRole == "SuperAdmin" || userRole == "Admin" || userRole == "Security Officer";
+}
+
+@section Breadcrumb {
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="@Url.Action("Index", "Dashboard")"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Blocked Visitors</li>
+        </ol>
+    </nav>
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="fas fa-ban me-2 text-danger"></i>Blocked Visitors</h2>
+        <p class="text-muted mb-0 small">Manage visitors who are blocked from entering the premises</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="@Url.Action("Index", "Dashboard")" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i>Dashboard
+        </a>
+        @if (canEdit)
+        {
+            <a href="@Url.Action("Create", "BlockedVisitor")" class="btn btn-danger btn-sm">
+                <i class="fas fa-plus me-1"></i>Block Visitor
+            </a>
+        }
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-1"></i> @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-1"></i> @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Summary -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #fee2e2 0%, #fca5a5 100%);">
+            <div class="card-body p-3 text-center">
+                <p class="text-danger fw-semibold mb-1 small">Total Blocked</p>
+                <h3 class="fw-bold mb-0 text-danger">@Model.Count</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%);">
+            <div class="card-body p-3 text-center">
+                <p class="fw-semibold mb-1 small" style="color:#92400e;">Active Blocks</p>
+                <h3 class="fw-bold mb-0" style="color:#92400e;">@Model.Count(b => b.IsActive)</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #d1fae5 0%, #6ee7b7 100%);">
+            <div class="card-body p-3 text-center">
+                <p class="fw-semibold mb-1 small" style="color:#059669;">Removed Blocks</p>
+                <h3 class="fw-bold mb-0" style="color:#059669;">@Model.Count(b => !b.IsActive)</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter -->
+<div class="card shadow-sm mb-4 border-0">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-6">
+                <label class="form-label small fw-semibold mb-1">Search</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" id="blockedSearch" class="form-control" placeholder="Name or CNIC...">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-semibold mb-1">Status</label>
+                <select id="blockedStatusFilter" class="form-select form-select-sm">
+                    <option value="all">All</option>
+                    <option value="active">Active Blocks</option>
+                    <option value="inactive">Removed</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary btn-sm w-100" onclick="$('#blockedSearch').val('');$('#blockedStatusFilter').val('all');filterBlocked();">
+                    <i class="fas fa-undo me-1"></i>Reset
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive" style="max-height: 65vh; overflow-y: auto;">
+            <table class="table table-hover mb-0" id="blockedTable">
+                <thead style="position: sticky; top: 0; z-index: 1; background: #f8f9fc;">
+                    <tr class="small">
+                        <th class="px-3 py-2 text-muted text-uppercase fw-semibold" style="font-size: 0.7rem;">Visitor</th>
+                        <th class="px-3 py-2 text-muted text-uppercase fw-semibold" style="font-size: 0.7rem;">CNIC</th>
+                        <th class="px-3 py-2 text-muted text-uppercase fw-semibold" style="font-size: 0.7rem;">Reason</th>
+                        <th class="px-3 py-2 text-muted text-uppercase fw-semibold" style="font-size: 0.7rem;">Blocked By</th>
+                        <th class="px-3 py-2 text-muted text-uppercase fw-semibold" style="font-size: 0.7rem;">Date</th>
+                        <th class="px-3 py-2 text-muted text-uppercase fw-semibold" style="font-size: 0.7rem;">Status</th>
+                        @if (canEdit)
+                        {
+                            <th class="px-3 py-2 text-muted text-uppercase fw-semibold" style="font-size: 0.7rem;">Actions</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody class="small" id="blockedTableBody">
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="fas fa-ban fa-2x mb-2 d-block" style="color:#d1d5db;"></i>
+                                No blocked visitors
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var b in Model)
+                        {
+                            <tr class="blocked-row"
+                                data-name="@b.Name.ToLower()"
+                                data-cnic="@b.CNIC.ToLower()"
+                                data-status="@(b.IsActive ? "active" : "inactive")">
+                                <td class="px-3 py-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-semibold"
+                                             style="width:32px;height:32px;font-size:0.75rem;background:linear-gradient(135deg,#ef4444,#dc2626);">
+                                            @b.Name.Substring(0, 1).ToUpper()
+                                        </div>
+                                        <span class="fw-semibold">@b.Name</span>
+                                    </div>
+                                </td>
+                                <td class="px-3 py-2">@b.CNIC</td>
+                                <td class="px-3 py-2 text-muted">@(b.Reason ?? "—")</td>
+                                <td class="px-3 py-2">@b.BlockedByName</td>
+                                <td class="px-3 py-2 text-muted" style="font-size:0.75rem;">@b.CreatedAt.ToString("MMM dd, yyyy")</td>
+                                <td class="px-3 py-2">
+                                    @if (b.IsActive)
+                                    {
+                                        <span class="badge rounded-pill" style="background:#fee2e2;color:#dc2626;font-weight:500;">Blocked</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge rounded-pill" style="background:#f1f5f9;color:#64748b;font-weight:500;">Removed</span>
+                                    }
+                                </td>
+                                @if (canEdit)
+                                {
+                                    <td class="px-3 py-2">
+                                        <div class="d-flex gap-1">
+                                            <a href="@Url.Action("Edit", "BlockedVisitor", new { id = b.Id })"
+                                               class="btn btn-sm btn-outline-primary" style="padding:2px 8px;font-size:0.7rem;" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm @(b.IsActive ? "btn-outline-success" : "btn-outline-danger")"
+                                                    style="padding:2px 8px;font-size:0.7rem;"
+                                                    onclick="toggleBlocked(@b.Id, '@b.Name', @b.IsActive.ToString().ToLower())" title="@(b.IsActive ? "Remove Block" : "Re-block")">
+                                                <i class="fas fa-@(b.IsActive ? "unlock" : "lock")"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                                    style="padding:2px 8px;font-size:0.7rem;"
+                                                    onclick="deleteBlocked(@b.Id, '@b.Name')" title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer bg-white border-top py-2">
+        <span class="text-muted small" id="blockedCount">@Model.Count entry(ies)</span>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function toggleBlocked(id, name, isActive) {
+            var action = isActive ? 'remove the block on' : 're-block';
+            if (!confirm('Are you sure you want to ' + action + ' "' + name + '"?')) return;
+            $.ajax({
+                url: '@Url.Action("ToggleActive", "BlockedVisitor")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ id: id }),
+                success: function (r) { if (r.success) window.location.reload(); else alert(r.message); },
+                error: function () { alert('An error occurred.'); }
+            });
+        }
+
+        function deleteBlocked(id, name) {
+            if (!confirm('Delete blocked entry for "' + name + '"? This cannot be undone.')) return;
+            $.ajax({
+                url: '@Url.Action("Delete", "BlockedVisitor")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ id: id }),
+                success: function (r) { if (r.success) window.location.reload(); else alert(r.message); },
+                error: function () { alert('An error occurred.'); }
+            });
+        }
+
+        function filterBlocked() {
+            var search = $('#blockedSearch').val().toLowerCase();
+            var status = $('#blockedStatusFilter').val();
+            var visible = 0;
+            $('#blockedTableBody .blocked-row').each(function () {
+                var row = $(this);
+                var matchSearch = !search || (row.data('name') || '').includes(search) || (row.data('cnic') || '').includes(search);
+                var matchStatus = status === 'all' || row.data('status') === status;
+                if (matchSearch && matchStatus) { row.show(); visible++; } else { row.hide(); }
+            });
+            $('#blockedCount').text(visible + ' entry(ies)');
+        }
+
+        $(document).ready(function () {
+            $('#blockedSearch').on('input', filterBlocked);
+            $('#blockedStatusFilter').on('change', filterBlocked);
+        });
+    </script>
+}

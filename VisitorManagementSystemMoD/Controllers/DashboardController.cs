@@ -43,17 +43,17 @@ namespace VisitorManagementSystemMoD.Controllers
                         .ToList();
 
                     viewModel.TotalVisitors = employeeVisitors.Count;
-                    viewModel.PendingRequests = employeeVisitors.Count(v => v.Status == "Pending");
-                    viewModel.ApprovedRequests = employeeVisitors.Count(v => v.Status == "Approved");
-                    viewModel.RejectedRequests = employeeVisitors.Count(v => v.Status == "Rejected");
+                    viewModel.PendingRequests = employeeVisitors.Count(v => v.Status == "Pending" && v.RequestCreatedAt.Date == DateTime.Today);
+                    viewModel.ApprovedRequests = employeeVisitors.Count(v => v.Status == "Approved" && v.ExpectedTime.Date == DateTime.Today);
+                    viewModel.RejectedRequests = employeeVisitors.Count(v => v.Status == "Rejected" && v.UpdatedAt.HasValue && v.UpdatedAt.Value.Date == DateTime.Today);
                     viewModel.CheckedInVisitors = employeeVisitors.Count(v => v.CheckInTime.HasValue && !v.CheckOutTime.HasValue);
-                    viewModel.CheckedOutVisitors = employeeVisitors.Count(v => v.CheckOutTime.HasValue);
+                    viewModel.CheckedOutVisitors = employeeVisitors.Count(v => v.CheckOutTime.HasValue && v.CheckOutTime.Value.Date == DateTime.Today);
                     viewModel.AllVisitorsList = employeeVisitors;
-                    viewModel.PendingVisitorsList = employeeVisitors.Where(v => v.Status == "Pending").ToList();
-                    viewModel.ApprovedVisitorsList = employeeVisitors.Where(v => v.Status == "Approved").ToList();
-                    viewModel.RejectedVisitorsList = employeeVisitors.Where(v => v.Status == "Rejected").ToList();
+                    viewModel.PendingVisitorsList = employeeVisitors.Where(v => v.Status == "Pending" && v.RequestCreatedAt.Date == DateTime.Today).ToList();
+                    viewModel.ApprovedVisitorsList = employeeVisitors.Where(v => v.Status == "Approved" && v.ExpectedTime.Date == DateTime.Today).ToList();
+                    viewModel.RejectedVisitorsList = employeeVisitors.Where(v => v.Status == "Rejected" && v.UpdatedAt.HasValue && v.UpdatedAt.Value.Date == DateTime.Today).ToList();
                     viewModel.CheckedInVisitorsList = employeeVisitors.Where(v => v.CheckInTime.HasValue && !v.CheckOutTime.HasValue).ToList();
-                    viewModel.CheckedOutVisitorsList = employeeVisitors.Where(v => v.CheckOutTime.HasValue).ToList();
+                    viewModel.CheckedOutVisitorsList = employeeVisitors.Where(v => v.CheckOutTime.HasValue && v.CheckOutTime.Value.Date == DateTime.Today).ToList();
                     // Recent Activity - Only today's visitors that have checked in or out
                     viewModel.RecentVisitors = employeeVisitors
                         .Where(v => v.CheckInTime.HasValue && v.CheckInTime.Value.Date == DateTime.Today)
@@ -75,18 +75,17 @@ namespace VisitorManagementSystemMoD.Controllers
                         .ToList();
 
                     viewModel.TotalVisitors = allVisitors.Count;
-                    viewModel.PendingRequests = allVisitors.Count(v => v.Status == "Pending");
-                    viewModel.ApprovedRequests = allVisitors.Count(v => v.Status == "Approved");
-                    viewModel.RejectedRequests = allVisitors.Count(v => v.Status == "Rejected");
+                    viewModel.PendingRequests = allVisitors.Count(v => v.Status == "Pending" && v.RequestCreatedAt.Date == DateTime.Today);
+                    viewModel.ApprovedRequests = allVisitors.Count(v => v.Status == "Approved" && v.ExpectedTime.Date == DateTime.Today);
+                    viewModel.RejectedRequests = allVisitors.Count(v => v.Status == "Rejected" && v.UpdatedAt.HasValue && v.UpdatedAt.Value.Date == DateTime.Today);
                     viewModel.CheckedInVisitors = allVisitors.Count(v => v.CheckInTime.HasValue && !v.CheckOutTime.HasValue);
-                    viewModel.CheckedOutVisitors = allVisitors.Count(v => v.CheckOutTime.HasValue);
-                    viewModel.AllVisitorsList = allVisitors;
-                    viewModel.PendingVisitorsList = allVisitors.Where(v => v.Status == "Pending").ToList();
-                    viewModel.ApprovedVisitorsList = allVisitors.Where(v => v.Status == "Approved").ToList();
-                    viewModel.RejectedVisitorsList = allVisitors.Where(v => v.Status == "Rejected").ToList();
-                    viewModel.CheckedInVisitorsList = allVisitors.Where(v => v.CheckInTime.HasValue && !v.CheckOutTime.HasValue).ToList();
-                    viewModel.CheckedOutVisitorsList = allVisitors.Where(v => v.CheckOutTime.HasValue).ToList();
-                    // Recent Activity - Only today's visitors that have checked in
+                    viewModel.CheckedOutVisitors = allVisitors.Count(v => v.CheckOutTime.HasValue && v.CheckOutTime.Value.Date == DateTime.Today);
+                    viewModel.AllVisitorsList = allVisitors.OrderByDescending(v => v.RequestCreatedAt).ToList();
+                    viewModel.PendingVisitorsList = allVisitors.Where(v => v.Status == "Pending" && v.RequestCreatedAt.Date == DateTime.Today).OrderByDescending(v => v.RequestCreatedAt).ToList();
+                    viewModel.ApprovedVisitorsList = allVisitors.Where(v => v.Status == "Approved" && v.ExpectedTime.Date == DateTime.Today).OrderByDescending(v => v.RequestCreatedAt).ToList();
+                    viewModel.RejectedVisitorsList = allVisitors.Where(v => v.Status == "Rejected" && v.UpdatedAt.HasValue && v.UpdatedAt.Value.Date == DateTime.Today).OrderByDescending(v => v.RequestCreatedAt).ToList();
+                    viewModel.CheckedInVisitorsList = allVisitors.Where(v => v.CheckInTime.HasValue && !v.CheckOutTime.HasValue).OrderByDescending(v => v.RequestCreatedAt).ToList();
+                    viewModel.CheckedOutVisitorsList = allVisitors.Where(v => v.CheckOutTime.HasValue && v.CheckOutTime.Value.Date == DateTime.Today).OrderByDescending(v => v.RequestCreatedAt).ToList();
                     viewModel.RecentVisitors = allVisitors
                         .Where(v => v.Status == "Approved" && v.CheckInTime.HasValue && v.CheckInTime.Value.Date == DateTime.Today)
                         .OrderByDescending(v => v.CheckInTime)
@@ -104,13 +103,13 @@ namespace VisitorManagementSystemMoD.Controllers
                         .ToList();
 
                     viewModel.TotalVisitors = gateVisitors.Count;
-                    viewModel.PendingRequests = gateVisitors.Count(v => !v.CheckInTime.HasValue);
+                    viewModel.PendingRequests = gateVisitors.Count(v => !v.CheckInTime.HasValue && v.ExpectedTime.Date == DateTime.Today);
                     viewModel.CheckedInVisitors = gateVisitors.Count(v => v.CheckInTime.HasValue && !v.CheckOutTime.HasValue);
-                    viewModel.CheckedOutVisitors = gateVisitors.Count(v => v.CheckOutTime.HasValue);
+                    viewModel.CheckedOutVisitors = gateVisitors.Count(v => v.CheckOutTime.HasValue && v.CheckOutTime.Value.Date == DateTime.Today);
                     viewModel.AllVisitorsList = gateVisitors;
-                    viewModel.PendingVisitorsList = gateVisitors.Where(v => !v.CheckInTime.HasValue).ToList();
+                    viewModel.PendingVisitorsList = gateVisitors.Where(v => !v.CheckInTime.HasValue && v.ExpectedTime.Date == DateTime.Today).ToList();
                     viewModel.CheckedInVisitorsList = gateVisitors.Where(v => v.CheckInTime.HasValue && !v.CheckOutTime.HasValue).ToList();
-                    viewModel.CheckedOutVisitorsList = gateVisitors.Where(v => v.CheckOutTime.HasValue).ToList();
+                    viewModel.CheckedOutVisitorsList = gateVisitors.Where(v => v.CheckOutTime.HasValue && v.CheckOutTime.Value.Date == DateTime.Today).ToList();
                     viewModel.TodayVisitors = gateVisitors.Where(v => v.ExpectedTime.Date == DateTime.Today).ToList();
                     viewModel.RecentVisitors = gateVisitors.Where(v => v.CheckInTime.HasValue && v.CheckInTime.Value.Date == DateTime.Today).OrderByDescending(v => v.CheckInTime).ToList();
                     break;
@@ -125,17 +124,17 @@ namespace VisitorManagementSystemMoD.Controllers
                         .ToList();
 
                     viewModel.TotalVisitors = adminVisitors.Count;
-                    viewModel.PendingRequests = adminVisitors.Count(v => v.Status == "Pending");
-                    viewModel.ApprovedRequests = adminVisitors.Count(v => v.Status == "Approved");
-                    viewModel.RejectedRequests = adminVisitors.Count(v => v.Status == "Rejected");
+                    viewModel.PendingRequests = adminVisitors.Count(v => v.Status == "Pending" && v.RequestCreatedAt.Date == DateTime.Today);
+                    viewModel.ApprovedRequests = adminVisitors.Count(v => v.Status == "Approved" && v.ExpectedTime.Date == DateTime.Today);
+                    viewModel.RejectedRequests = adminVisitors.Count(v => v.Status == "Rejected" && v.UpdatedAt.HasValue && v.UpdatedAt.Value.Date == DateTime.Today);
                     viewModel.CheckedInVisitors = adminVisitors.Count(v => v.CheckInTime.HasValue && !v.CheckOutTime.HasValue);
-                    viewModel.CheckedOutVisitors = adminVisitors.Count(v => v.CheckOutTime.HasValue);
-                    viewModel.AllVisitorsList = adminVisitors;
-                    viewModel.PendingVisitorsList = adminVisitors.Where(v => v.Status == "Pending").ToList();
-                    viewModel.ApprovedVisitorsList = adminVisitors.Where(v => v.Status == "Approved").ToList();
-                    viewModel.RejectedVisitorsList = adminVisitors.Where(v => v.Status == "Rejected").ToList();
-                    viewModel.CheckedInVisitorsList = adminVisitors.Where(v => v.CheckInTime.HasValue && !v.CheckOutTime.HasValue).ToList();
-                    viewModel.CheckedOutVisitorsList = adminVisitors.Where(v => v.CheckOutTime.HasValue).ToList();
+                    viewModel.CheckedOutVisitors = adminVisitors.Count(v => v.CheckOutTime.HasValue && v.CheckOutTime.Value.Date == DateTime.Today);
+                    viewModel.AllVisitorsList = adminVisitors.OrderByDescending(v => v.RequestCreatedAt).ToList();
+                    viewModel.PendingVisitorsList = adminVisitors.Where(v => v.Status == "Pending" && v.RequestCreatedAt.Date == DateTime.Today).OrderByDescending(v => v.RequestCreatedAt).ToList();
+                    viewModel.ApprovedVisitorsList = adminVisitors.Where(v => v.Status == "Approved" && v.ExpectedTime.Date == DateTime.Today).OrderByDescending(v => v.RequestCreatedAt).ToList();
+                    viewModel.RejectedVisitorsList = adminVisitors.Where(v => v.Status == "Rejected" && v.UpdatedAt.HasValue && v.UpdatedAt.Value.Date == DateTime.Today).OrderByDescending(v => v.RequestCreatedAt).ToList();
+                    viewModel.CheckedInVisitorsList = adminVisitors.Where(v => v.CheckInTime.HasValue && !v.CheckOutTime.HasValue).OrderByDescending(v => v.RequestCreatedAt).ToList();
+                    viewModel.CheckedOutVisitorsList = adminVisitors.Where(v => v.CheckOutTime.HasValue && v.CheckOutTime.Value.Date == DateTime.Today).OrderByDescending(v => v.RequestCreatedAt).ToList();
                     viewModel.TodayVisitors = adminVisitors.Where(v => v.ExpectedTime.Date == DateTime.Today).ToList();
                     viewModel.RecentVisitors = adminVisitors.Where(v => v.CheckInTime.HasValue && v.CheckInTime.Value.Date == DateTime.Today).OrderByDescending(v => v.CheckInTime).ToList();
 
@@ -154,8 +153,61 @@ namespace VisitorManagementSystemMoD.Controllers
                         .ToList();
 
                     break;
-            }
 
+                case "Barrier Gate":
+                    var bgVisitors = _context.Visitors
+                        .Include(v => v.Employee)
+                        .Include(v => v.ApprovedBy)
+                        .Include(v => v.Department)
+                        .Where(v => v.Status == "Approved")
+                        .OrderByDescending(v => v.ExpectedTime)
+                        .ToList();
+
+                    viewModel.TotalVisitors = bgVisitors.Count;
+                    viewModel.ApprovedRequests = bgVisitors.Count(v => v.ExpectedTime.Date == DateTime.Today);
+                    viewModel.CheckedInVisitors = bgVisitors.Count(v => v.CheckInTime.HasValue && !v.CheckOutTime.HasValue);
+                    viewModel.CheckedOutVisitors = bgVisitors.Count(v => v.CheckOutTime.HasValue && v.CheckOutTime.Value.Date == DateTime.Today);
+                    viewModel.AllVisitorsList = bgVisitors;
+                    viewModel.ApprovedVisitorsList = bgVisitors.Where(v => v.ExpectedTime.Date == DateTime.Today).ToList();
+                    viewModel.CheckedInVisitorsList = bgVisitors.Where(v => v.CheckInTime.HasValue && !v.CheckOutTime.HasValue).ToList();
+                    viewModel.CheckedOutVisitorsList = bgVisitors.Where(v => v.CheckOutTime.HasValue && v.CheckOutTime.Value.Date == DateTime.Today).ToList();
+                    viewModel.TodayVisitors = bgVisitors.Where(v => v.ExpectedTime.Date == DateTime.Today).ToList();
+                    viewModel.RecentVisitors = bgVisitors.Where(v => v.CheckInTime.HasValue && v.CheckInTime.Value.Date == DateTime.Today).OrderByDescending(v => v.CheckInTime).ToList();
+                    break;
+
+                default:
+                    // Any other role (custom roles created by SuperAdmin) — treat like Employee
+                    var customRoleVisitors = _context.Visitors
+                        .Where(v => v.EmployeeId == userId)
+                        .Include(v => v.Employee)
+                        .Include(v => v.ApprovedBy)
+                        .Include(v => v.Department)
+                        .OrderByDescending(v => v.RequestCreatedAt)
+                        .ToList();
+
+                    viewModel.TotalVisitors = customRoleVisitors.Count;
+                    viewModel.PendingRequests = customRoleVisitors.Count(v => v.Status == "Pending" && v.RequestCreatedAt.Date == DateTime.Today);
+                    viewModel.ApprovedRequests = customRoleVisitors.Count(v => v.Status == "Approved" && v.ExpectedTime.Date == DateTime.Today);
+                    viewModel.RejectedRequests = customRoleVisitors.Count(v => v.Status == "Rejected" && v.UpdatedAt.HasValue && v.UpdatedAt.Value.Date == DateTime.Today);
+                    viewModel.CheckedInVisitors = customRoleVisitors.Count(v => v.CheckInTime.HasValue && !v.CheckOutTime.HasValue);
+                    viewModel.CheckedOutVisitors = customRoleVisitors.Count(v => v.CheckOutTime.HasValue && v.CheckOutTime.Value.Date == DateTime.Today);
+                    viewModel.AllVisitorsList = customRoleVisitors;
+                    viewModel.PendingVisitorsList = customRoleVisitors.Where(v => v.Status == "Pending" && v.RequestCreatedAt.Date == DateTime.Today).ToList();
+                    viewModel.ApprovedVisitorsList = customRoleVisitors.Where(v => v.Status == "Approved" && v.ExpectedTime.Date == DateTime.Today).ToList();
+                    viewModel.RejectedVisitorsList = customRoleVisitors.Where(v => v.Status == "Rejected" && v.UpdatedAt.HasValue && v.UpdatedAt.Value.Date == DateTime.Today).ToList();
+                    viewModel.CheckedInVisitorsList = customRoleVisitors.Where(v => v.CheckInTime.HasValue && !v.CheckOutTime.HasValue).ToList();
+                    viewModel.CheckedOutVisitorsList = customRoleVisitors.Where(v => v.CheckOutTime.HasValue && v.CheckOutTime.Value.Date == DateTime.Today).ToList();
+                    viewModel.RecentVisitors = customRoleVisitors
+                        .Where(v => v.CheckInTime.HasValue && v.CheckInTime.Value.Date == DateTime.Today)
+                        .OrderByDescending(v => v.CheckInTime)
+                        .ToList();
+                    viewModel.UpcomingVisitors = customRoleVisitors
+                        .Where(v => (v.Status == "Approved" || v.Status == "Pending") && v.ExpectedTime > DateTime.Now && !v.CheckInTime.HasValue)
+                        .OrderBy(v => v.ExpectedTime)
+                        .Take(10)
+                        .ToList();
+                    break;
+            }
             ViewBag.UserRole = userRole;
             return View(viewModel);
         }

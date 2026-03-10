@@ -8,6 +8,7 @@ namespace VisitorManagementSystemMoD.Constants
         public const string SuperAdmin = "SuperAdmin";
         public const string Admin = "Admin";
         public const string SecurityOfficer = "Security Officer";
+        public const string SectionOfficer = "Section Officer";
         public const string Employee = "Employee";
         public const string Reception = "Reception";
     }
@@ -61,6 +62,10 @@ namespace VisitorManagementSystemMoD.Constants
         public const string EditDepartment = "EditDepartment";
         public const string DeleteDepartment = "DeleteDepartment";
         public const string ViewAllDepartments = "ViewAllDepartments";
+
+        // Department Employee Management Permissions
+        public const string ManageDepartmentEmployees = "ManageDepartmentEmployees";
+        public const string ViewDepartmentEmployees = "ViewDepartmentEmployees";
 
         // System Permissions
         public const string AccessAdminPanel = "AccessAdminPanel";
@@ -122,6 +127,10 @@ namespace VisitorManagementSystemMoD.Constants
                     Permissions.EditDepartment,
                     Permissions.DeleteDepartment,
                     Permissions.ViewAllDepartments,
+
+                    // Department Employee Management
+                    Permissions.ManageDepartmentEmployees,
+                    Permissions.ViewDepartmentEmployees,
 
                     // All System Permissions
                     Permissions.AccessAdminPanel,
@@ -185,6 +194,22 @@ namespace VisitorManagementSystemMoD.Constants
                     Permissions.ViewCheckedInVisitors,
                     Permissions.ViewCheckedOutVisitors,
                     Permissions.ViewPendingVisitors
+                }
+            },
+            {
+                Roles.SectionOfficer, new List<string>
+                {
+                    // Visitor Permissions — create on behalf of department employees
+                    Permissions.ViewPersonalVisitorRequests,
+                    Permissions.CreateVisitorRequest,
+                    Permissions.EditPersonalVisitorRequest,
+                    Permissions.DeletePersonalVisitorRequest,
+
+                    // Department Employee Management
+                    Permissions.ViewDepartmentEmployees,
+
+                    // View Check-In Status for own visitors
+                    Permissions.ViewCheckInStatus
                 }
             },
             {
@@ -266,6 +291,10 @@ namespace VisitorManagementSystemMoD.Constants
             {
                 Roles.SecurityOfficer,
                 "Chief Security Officer responsible for approval management. Can view all visitor requests, approve or reject them, and generate visitor-related reports. No access to visitor creation or modification."
+            },
+            {
+                Roles.SectionOfficer,
+                "Section Officer responsible for creating visitor requests on behalf of department employees. Manages high-priority and regular employees within their assigned department."
             },
             {
                 Roles.Employee,

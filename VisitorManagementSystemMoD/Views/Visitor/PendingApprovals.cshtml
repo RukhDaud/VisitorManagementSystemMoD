@@ -8,7 +8,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h1 class="display-6 fw-bold">Pending Approvals</h1>
-        <p class="text-muted">Review and approve/reject visitor requests</p>
+        <p class="text-muted">Review and approve/reject visitor requests &mdash; <span class="fw-semibold text-dark">@DateTime.Today.ToString("dddd, MMMM dd, yyyy")</span></p>
     </div>
     <div class="d-flex align-items-center gap-2">
         <label class="mb-0 text-muted small">Show</label>
@@ -25,53 +25,103 @@
 
 @if (Model.Any())
 {
-    <div class="card">
-        <div class="card-header bg-warning bg-opacity-10 border-warning">
-            <div class="d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="fas fa-clock me-2 text-warning"></i>Pending Requests (@Model.Count())</h5>
+    var highPriorityVisitors = Model.Where(v => v.IsUrgent).ToList();
+    var standardVisitors = Model.Where(v => !v.IsUrgent).ToList();
+
+    if (highPriorityVisitors.Any())
+    {
+        <div class="card mb-4" style="border: 2px solid #ef4444; border-radius: 12px;">
+            <div class="card-header d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-bottom: 2px solid #fca5a5; border-radius: 10px 10px 0 0;">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt me-2 text-danger"></i>
+                    <span class="fw-bold text-danger">High Priority</span>
+                    <span class="badge bg-danger rounded-pill ms-2">@highPriorityVisitors.Count</span>
+                </h5>
+                <small class="text-danger fw-semibold"><i class="fas fa-exclamation-triangle me-1"></i>Requires immediate attention</small>
             </div>
-        </div>
-        <div class="list-group list-group-flush">
-            @foreach (var visitor in Model)
-            {
-                <div class="list-group-item list-group-item-action" style="cursor: pointer;" onclick="viewPendingVisitorDetails(@visitor.Id)">
-                    <div class="d-flex align-items-center gap-3">
-                        <!-- Avatar -->
-                        <div class="flex-shrink-0">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width: 50px; height: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                                @{
-                                    var initials = string.Join("", visitor.Name.Split(' ').Select(n => n.FirstOrDefault()));
-                                }
-                                @initials
+            <div class="list-group list-group-flush">
+                @foreach (var visitor in highPriorityVisitors)
+                {
+                    <div class="list-group-item list-group-item-action" style="cursor: pointer; background: #fffbfb; border-left: 4px solid #ef4444;" onclick="viewPendingVisitorDetails(@visitor.Id)">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="flex-shrink-0">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width: 50px; height: 50px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                                    @{
+                                        var hpInitials = string.Join("", (visitor.Name ?? "?").Split(' ').Select(n => n.FirstOrDefault()));
+                                    }
+                                    @hpInitials
+                                </div>
                             </div>
-                        </div>
-
-                        <!-- Details -->
-                        <div class="flex-grow-1">
-                            <div class="d-flex align-items-center gap-2 mb-1">
-                                <h6 class="mb-0 fw-bold">@visitor.Name</h6>
-                                <span class="badge badge-pending small">Pending</span>
-                                @if (visitor.HasVehicle)
-                                {
-                                    <span class="badge bg-info small"><i class="fas fa-car me-1"></i>Vehicle</span>
-                                }
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <h6 class="mb-0 fw-bold">@visitor.Name</h6>
+                                    <span class="badge bg-danger small"><i class="fas fa-bolt me-1"></i>High Priority</span>
+                                    @if (visitor.HasVehicle)
+                                    {
+                                        <span class="badge bg-info small"><i class="fas fa-car me-1"></i>Vehicle</span>
+                                    }
+                                </div>
+                                <div class="d-flex gap-4 text-muted small">
+                                    <span><i class="fas fa-user me-1"></i>Host: @visitor.EmployeeName</span>
+                                    <span><i class="fas fa-clock me-1"></i>@visitor.ExpectedTime.ToString("MMM dd, h:mm tt")</span>
+                                    <span><i class="fas fa-briefcase me-1"></i>@(!string.IsNullOrEmpty(visitor.Purpose) ? visitor.Purpose.Substring(0, Math.Min(40, visitor.Purpose.Length)) + (visitor.Purpose.Length > 40 ? "..." : "") : "N/A")</span>
+                                </div>
                             </div>
-                            <div class="d-flex gap-4 text-muted small">
-                                <span><i class="fas fa-user me-1"></i>Host: @visitor.EmployeeName</span>
-                                <span><i class="fas fa-clock me-1"></i>@visitor.ExpectedTime.ToString("MMM dd, h:mm tt")</span>
-                                <span><i class="fas fa-briefcase me-1"></i>@visitor.Purpose.Substring(0, Math.Min(40, visitor.Purpose.Length))@(visitor.Purpose.Length > 40 ? "..." : "")</span>
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-chevron-right text-danger"></i>
                             </div>
-                        </div>
-
-                        <!-- Action Icon -->
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-chevron-right text-primary"></i>
                         </div>
                     </div>
-                </div>
-            }
+                }
+            </div>
         </div>
-    </div>
+    }
+
+    if (standardVisitors.Any())
+    {
+        <div class="card">
+            <div class="card-header bg-warning bg-opacity-10 border-warning">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-clock me-2 text-warning"></i>Pending Requests (@standardVisitors.Count)</h5>
+                </div>
+            </div>
+            <div class="list-group list-group-flush">
+                @foreach (var visitor in standardVisitors)
+                {
+                    <div class="list-group-item list-group-item-action" style="cursor: pointer;" onclick="viewPendingVisitorDetails(@visitor.Id)">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="flex-shrink-0">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width: 50px; height: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                    @{
+                                        var initials = string.Join("", (visitor.Name ?? "?").Split(' ').Select(n => n.FirstOrDefault()));
+                                    }
+                                    @initials
+                                </div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <h6 class="mb-0 fw-bold">@visitor.Name</h6>
+                                    <span class="badge badge-pending small">Pending</span>
+                                    @if (visitor.HasVehicle)
+                                    {
+                                        <span class="badge bg-info small"><i class="fas fa-car me-1"></i>Vehicle</span>
+                                    }
+                                </div>
+                                <div class="d-flex gap-4 text-muted small">
+                                    <span><i class="fas fa-user me-1"></i>Host: @visitor.EmployeeName</span>
+                                    <span><i class="fas fa-clock me-1"></i>@visitor.ExpectedTime.ToString("MMM dd, h:mm tt")</span>
+                                    <span><i class="fas fa-briefcase me-1"></i>@(!string.IsNullOrEmpty(visitor.Purpose) ? visitor.Purpose.Substring(0, Math.Min(40, visitor.Purpose.Length)) + (visitor.Purpose.Length > 40 ? "..." : "") : "N/A")</span>
+                                </div>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-chevron-right text-primary"></i>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
 }
 else
 {
@@ -122,9 +172,23 @@ else
             </div>
             <div class="modal-body">
                 <p class="mb-3">Are you sure you want to reject the visitor request for <strong id="rejectVisitorName"></strong>?</p>
+                <div class="mb-2">
+                    <label class="form-label fw-semibold small text-muted">Quick Responses</label>
+                    <div class="d-flex flex-wrap gap-1">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('rejectionReason').value='Missing CNIC'">Missing CNIC</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('rejectionReason').value='Blocked CNIC'">Blocked CNIC</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('rejectionReason').value='CNIC expired or invalid'">CNIC expired</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('rejectionReason').value='Incomplete or missing documents'">Incomplete documents</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('rejectionReason').value='Security concern identified'">Security concern</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('rejectionReason').value='Unauthorized visit - not pre-approved'">Unauthorized visit</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('rejectionReason').value='Host not available at the requested time'">Host unavailable</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('rejectionReason').value='Visit purpose not valid or insufficient'">Invalid purpose</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('rejectionReason').value='Visitor is on the blocked list'">Blocked visitor</button>
+                    </div>
+                </div>
                 <div class="mb-3">
-                    <label for="rejectionReason" class="form-label">Reason for Rejection *</label>
-                    <textarea id="rejectionReason" class="form-control" rows="3" placeholder="Please provide a reason..." required></textarea>
+                    <label for="rejectionReason" class="form-label fw-semibold">Reason for Rejection <span class="text-danger">*</span></label>
+                    <textarea id="rejectionReason" class="form-control" rows="3" placeholder="Select a quick response or type a custom reason..." required></textarea>
                 </div>
             </div>
             <div class="modal-footer">
@@ -196,7 +260,7 @@ else
                                             <h3>${visitor.name}</h3>
                                             <div class="d-flex gap-2">
                                                 <span class="badge badge-pending">Pending Approval</span>
-                                                ${visitor.hasVehicle ? '<span class="badge bg-info"><i class="fas fa-car me-1"></i>Vehicle</span>' : '<span class="badge bg-secondary"><i class="fas fa-walking me-1"></i>By Foot</span>'}
+                                                ${visitor.hasVehicle ? '<span class="badge bg-info"><i class="fas fa-car me-1"></i>Vehicle</span>' : '<span class="badge bg-secondary"><i class="fas fa-walking me-1"></i>Walk-in</span>'}
                                             </div>
                                         </div>
                                     </div>
@@ -258,7 +322,7 @@ else
                             html += `
                                 <div class="col-12">
                                     <div class="alert alert-warning mt-2">
-                                        <small><i class="fas fa-info-circle me-1"></i>If approved, this visitor will be directed to <strong>Reception (Gate 1)</strong> (By Foot Entry)</small>
+                                        <small><i class="fas fa-info-circle me-1"></i>If approved, this visitor will be directed to <strong>Reception (Gate 1)</strong> (Walk-in Entry)</small>
                                     </div>
                                 </div>
                             `;

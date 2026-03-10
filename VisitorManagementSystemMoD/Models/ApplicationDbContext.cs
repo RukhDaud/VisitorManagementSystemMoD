@@ -14,6 +14,8 @@ namespace VisitorManagementSystemMoD.Models
         public DbSet<Department> Departments { get; set; }
         public DbSet<Visitor> Visitors { get; set; }
         public DbSet<Alert> Alerts { get; set; }
+        public DbSet<BlockedVisitor> BlockedVisitors { get; set; }
+        public DbSet<DepartmentEmployee> DepartmentEmployees { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -55,6 +57,24 @@ namespace VisitorManagementSystemMoD.Models
                 .WithMany()
                 .HasForeignKey(a => a.CreatedById)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<BlockedVisitor>()
+                .HasOne(b => b.BlockedBy)
+                .WithMany()
+                .HasForeignKey(b => b.BlockedById)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<DepartmentEmployee>()
+                .HasOne(de => de.User)
+                .WithMany(u => u.DepartmentEmployees)
+                .HasForeignKey(de => de.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Visitor>()
+                .HasOne(v => v.DepartmentEmployee)
+                .WithMany()
+                .HasForeignKey(v => v.DepartmentEmployeeId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             // Seed default SuperAdmin role
             modelBuilder.Entity<Role>().HasData(

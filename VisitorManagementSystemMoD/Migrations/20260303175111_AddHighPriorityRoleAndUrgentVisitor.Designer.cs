@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using VisitorManagementSystemMoD.Models;
 
@@ -11,9 +12,11 @@ using VisitorManagementSystemMoD.Models;
 namespace VisitorManagementSystemMoD.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260303175111_AddHighPriorityRoleAndUrgentVisitor")]
+    partial class AddHighPriorityRoleAndUrgentVisitor
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -152,41 +155,6 @@ namespace VisitorManagementSystemMoD.Migrations
                     b.ToTable("Departments");
                 });
 
-            modelBuilder.Entity("VisitorManagementSystemMoD.Models.DepartmentEmployee", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsHighPriority")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("DepartmentEmployees");
-                });
-
             modelBuilder.Entity("VisitorManagementSystemMoD.Models.Role", b =>
                 {
                     b.Property<int>("Id")
@@ -310,9 +278,6 @@ namespace VisitorManagementSystemMoD.Migrations
                     b.Property<DateTime?>("CheckOutTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("DepartmentEmployeeId")
-                        .HasColumnType("int");
-
                     b.Property<int?>("DepartmentId")
                         .HasColumnType("int");
 
@@ -373,8 +338,6 @@ namespace VisitorManagementSystemMoD.Migrations
 
                     b.HasIndex("ApprovedById");
 
-                    b.HasIndex("DepartmentEmployeeId");
-
                     b.HasIndex("DepartmentId");
 
                     b.HasIndex("EmployeeId");
@@ -404,17 +367,6 @@ namespace VisitorManagementSystemMoD.Migrations
                     b.Navigation("BlockedBy");
                 });
 
-            modelBuilder.Entity("VisitorManagementSystemMoD.Models.DepartmentEmployee", b =>
-                {
-                    b.HasOne("VisitorManagementSystemMoD.Models.User", "User")
-                        .WithMany("DepartmentEmployees")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("VisitorManagementSystemMoD.Models.User", b =>
                 {
                     b.HasOne("VisitorManagementSystemMoD.Models.Department", "Department")
@@ -439,11 +391,6 @@ namespace VisitorManagementSystemMoD.Migrations
                         .HasForeignKey("ApprovedById")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("VisitorManagementSystemMoD.Models.DepartmentEmployee", "DepartmentEmployee")
-                        .WithMany()
-                        .HasForeignKey("DepartmentEmployeeId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("VisitorManagementSystemMoD.Models.Department", "Department")
                         .WithMany("Visitors")
                         .HasForeignKey("DepartmentId")
@@ -458,8 +405,6 @@ namespace VisitorManagementSystemMoD.Migrations
                     b.Navigation("ApprovedBy");
 
                     b.Navigation("Department");
-
-                    b.Navigation("DepartmentEmployee");
 
                     b.Navigation("Employee");
                 });
@@ -478,8 +423,6 @@ namespace VisitorManagementSystemMoD.Migrations
 
             modelBuilder.Entity("VisitorManagementSystemMoD.Models.User", b =>
                 {
-                    b.Navigation("DepartmentEmployees");
-
                     b.Navigation("Visitors");
                 });
 #pragma warning restore 612, 618

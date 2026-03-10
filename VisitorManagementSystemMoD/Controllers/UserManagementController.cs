@@ -267,7 +267,6 @@ namespace VisitorManagementSystemMoD.Controllers
 
             var user = _context.Users
                 .Include(u => u.Role)
-                .Include(u => u.Visitors)
                 .FirstOrDefault(u => u.Id == id);
 
             if (user == null)
@@ -281,16 +280,41 @@ namespace VisitorManagementSystemMoD.Controllers
                 return Json(new { success = false, message = "Cannot delete default SuperAdmin user" });
             }
 
-            // Check if user has visitors
-            if (user.Visitors.Any())
+            // Clean up all FK references before deleting
+            // 1. Delete visitors created by this user
+            var createdVisitors = _context.Visitors.Where(v => v.EmployeeId == id).ToList();
+            _context.Visitors.RemoveRange(createdVisitors);
+
+            // 2. Null out approver reference on visitors approved by this user
+            var approvedVisitors = _context.Visitors.Where(v => v.ApprovedById == id).ToList();
+            foreach (var v in approvedVisitors)
             {
-                return Json(new { success = false, message = $"Cannot delete user. User has {user.Visitors.Count} visitor record(s). Consider deactivating instead." });
+                v.ApprovedById = null;
             }
+
+            // 3. Delete alerts created by this user
+            var alerts = _context.Alerts.Where(a => a.CreatedById == id).ToList();
+            _context.Alerts.RemoveRange(alerts);
+
+            // 4. Delete blocked visitors created by this user
+            var blockedVisitors = _context.BlockedVisitors.Where(b => b.BlockedById == id).ToList();
+            _context.BlockedVisitors.RemoveRange(blockedVisitors);
+
+            // 5. Delete department employees owned by this user
+            var deptEmployees = _context.DepartmentEmployees.Where(de => de.UserId == id).ToList();
+            _context.DepartmentEmployees.RemoveRange(deptEmployees);
 
             _context.Users.Remove(user);
             _context.SaveChanges();
 
-            return Json(new { success = true, message = $"User '{user.Name}' deleted successfully" });
+            var deleted = createdVisitors.Count + alerts.Count + blockedVisitors.Count + deptEmployees.Count;
+            var msg = $"User '{user.Name}' deleted successfully";
+            if (deleted > 0)
+            {
+                msg += $" along with {createdVisitors.Count} visitor(s), {alerts.Count} alert(s), {blockedVisitors.Count} blocked record(s), {deptEmployees.Count} employee(s)";
+            }
+
+            return Json(new { success = true, message = msg });
         }
 
         // POST: UserManagement/ToggleActive/5

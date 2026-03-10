@@ -38,5 +38,7 @@ namespace VisitorManagementSystemMoD.Models
         public Department? Department { get; set; }
 
         public ICollection<Visitor> Visitors { get; set; } = new List<Visitor>();
+
+        public ICollection<DepartmentEmployee> DepartmentEmployees { get; set; } = new List<DepartmentEmployee>();
     }
 }

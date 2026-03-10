@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 using VisitorManagementSystemMoD.Models;
 using VisitorManagementSystemMoD.Models.ViewModels;
 
@@ -19,7 +20,7 @@ namespace VisitorManagementSystemMoD.Controllers
             return HttpContext.Session.GetInt32("UserId") != null;
         }
 
-        // Employee: Create Visitor Request (Bulk Entry)
+        // Employee/SO: Create Visitor Request (Bulk Entry)
         [HttpGet]
         public IActionResult Create()
         {
@@ -28,10 +29,29 @@ namespace VisitorManagementSystemMoD.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
+            var userId = HttpContext.Session.GetInt32("UserId")!.Value;
+            var user = _context.Users.Include(u => u.Role).FirstOrDefault(u => u.Id == userId);
             var userRole = HttpContext.Session.GetString("UserRole");
-            if (userRole != "Employee")
+
+            // Allow Employee or Section Officer
+            bool isSectionOfficer = userRole == "Section Officer";
+            if (userRole != "Employee" && !isSectionOfficer)
             {
                 return RedirectToAction("Index", "Dashboard");
+            }
+
+            ViewBag.IsSectionOfficer = isSectionOfficer;
+            ViewBag.Departments = _context.Departments.AsNoTracking().OrderBy(d => d.Name).ToList();
+
+            if (isSectionOfficer)
+            {
+                // Load department employees for this SO's department
+                var soDeptId = user?.DepartmentId;
+                var employees = _context.DepartmentEmployees
+                    .Where(de => de.User!.DepartmentId == soDeptId && de.IsActive)
+                    .OrderBy(de => de.Name).ToList();
+
+                ViewBag.Employees = employees;
             }
 
             var model = new BulkVisitorViewModel();
@@ -55,6 +75,24 @@ namespace VisitorManagementSystemMoD.Controllers
                 return View(model);
             }
 
+            var userId = HttpContext.Session.GetInt32("UserId")!.Value;
+            var userName = HttpContext.Session.GetString("UserName");
+            var userRole = HttpContext.Session.GetString("UserRole");
+
+            var employee = _context.Users.Include(u => u.Role).FirstOrDefault(u => u.Id == userId);
+            bool isSectionOfficer = userRole == "Section Officer";
+
+            ViewBag.IsSectionOfficer = isSectionOfficer;
+            ViewBag.Departments = _context.Departments.AsNoTracking().OrderBy(d => d.Name).ToList();
+
+            if (isSectionOfficer)
+            {
+                var soDeptId = employee?.DepartmentId;
+                ViewBag.Employees = _context.DepartmentEmployees
+                    .Where(de => de.User!.DepartmentId == soDeptId && de.IsActive)
+                    .OrderBy(de => de.Name).ToList();
+            }
+
             // Validate each visitor
             bool hasErrors = false;
             for (int i = 0; i < model.Visitors.Count; i++)
@@ -66,25 +104,75 @@ namespace VisitorManagementSystemMoD.Controllers
                     ModelState.AddModelError($"Visitors[{i}].Name", "Name is required");
                     hasErrors = true;
                 }
-                if (string.IsNullOrWhiteSpace(visitor.CNIC))
+
+                if (isSectionOfficer)
                 {
-                    ModelState.AddModelError($"Visitors[{i}].CNIC", "CNIC is required");
-                    hasErrors = true;
+                    // SO flow: validate employee selection + CNIC + Destination
+                    if (!visitor.DepartmentEmployeeId.HasValue || visitor.DepartmentEmployeeId <= 0)
+                    {
+                        ModelState.AddModelError($"Visitors[{i}].DepartmentEmployeeId", "Please select an employee");
+                        hasErrors = true;
+                    }
+                    else
+                    {
+                        var deptEmp = _context.DepartmentEmployees.FirstOrDefault(de => de.Id == visitor.DepartmentEmployeeId);
+                        if (deptEmp == null)
+                        {
+                            ModelState.AddModelError($"Visitors[{i}].DepartmentEmployeeId", "Selected employee not found");
+                            hasErrors = true;
+                        }
+                    }
+
+                    // CNIC always required for SO flow (13 digits)
+                    if (string.IsNullOrWhiteSpace(visitor.CNIC))
+                    {
+                        ModelState.AddModelError($"Visitors[{i}].CNIC", "CNIC is required");
+                        hasErrors = true;
+                    }
+                    else if (!Regex.IsMatch(visitor.CNIC, @"^\d{13}$"))
+                    {
+                        ModelState.AddModelError($"Visitors[{i}].CNIC", "CNIC must be exactly 13 digits without dashes or spaces");
+                        hasErrors = true;
+                    }
+                    if (!visitor.DepartmentId.HasValue || visitor.DepartmentId <= 0)
+                    {
+                        ModelState.AddModelError($"Visitors[{i}].DepartmentId", "Destination is required");
+                        hasErrors = true;
+                    }
                 }
-                if (string.IsNullOrWhiteSpace(visitor.Phone))
+                else
                 {
-                    ModelState.AddModelError($"Visitors[{i}].Phone", "Phone is required");
-                    hasErrors = true;
-                }
-                if (string.IsNullOrWhiteSpace(visitor.Purpose))
-                {
-                    ModelState.AddModelError($"Visitors[{i}].Purpose", "Purpose is required");
-                    hasErrors = true;
-                }
-                if (visitor.ExpectedTime == default)
-                {
-                    ModelState.AddModelError($"Visitors[{i}].ExpectedTime", "Expected time is required");
-                    hasErrors = true;
+                    // Regular employees: all fields required
+                    if (string.IsNullOrWhiteSpace(visitor.CNIC))
+                    {
+                        ModelState.AddModelError($"Visitors[{i}].CNIC", "CNIC is required");
+                        hasErrors = true;
+                    }
+                    else if (!Regex.IsMatch(visitor.CNIC, @"^\d{5}-\d{7}-\d{1}$"))
+                    {
+                        ModelState.AddModelError($"Visitors[{i}].CNIC", "CNIC must be in format XXXXX-XXXXXXX-X (e.g., 42101-1234567-1)");
+                        hasErrors = true;
+                    }
+                    if (string.IsNullOrWhiteSpace(visitor.Phone))
+                    {
+                        ModelState.AddModelError($"Visitors[{i}].Phone", "Phone is required");
+                        hasErrors = true;
+                    }
+                    else if (!Regex.IsMatch(visitor.Phone, @"^(\+92[\s-]?)?0?3\d{2}[\s-]?\d{7}$"))
+                    {
+                        ModelState.AddModelError($"Visitors[{i}].Phone", "Phone must be a valid Pakistani number (e.g., +92 300-1234567 or 03001234567)");
+                        hasErrors = true;
+                    }
+                    if (string.IsNullOrWhiteSpace(visitor.Purpose))
+                    {
+                        ModelState.AddModelError($"Visitors[{i}].Purpose", "Purpose is required");
+                        hasErrors = true;
+                    }
+                    if (visitor.ExpectedTime == default)
+                    {
+                        ModelState.AddModelError($"Visitors[{i}].ExpectedTime", "Expected time is required");
+                        hasErrors = true;
+                    }
                 }
             }
 
@@ -93,25 +181,64 @@ namespace VisitorManagementSystemMoD.Controllers
                 return View(model);
             }
 
-            var userId = HttpContext.Session.GetInt32("UserId")!.Value;
-            var userName = HttpContext.Session.GetString("UserName");
+            // Check for blocked CNICs (normalize digits-only for comparison)
+            var blockedCnicDigits = _context.BlockedVisitors
+                .Where(b => b.IsActive)
+                .Select(b => b.CNIC)
+                .ToList()
+                .Select(c => Regex.Replace(c, @"\D", ""))
+                .ToHashSet();
+
+            var blockedEntries = new List<VisitorEntryViewModel>();
+            for (int i = 0; i < model.Visitors.Count; i++)
+            {
+                var v = model.Visitors[i];
+                if (string.IsNullOrWhiteSpace(v.CNIC)) continue;
+
+                var cnicDigits = Regex.Replace(v.CNIC, @"\D", "");
+                if (blockedCnicDigits.Contains(cnicDigits))
+                {
+                    blockedEntries.Add(v);
+                }
+            }
+
+            if (blockedEntries.Any())
+            {
+                var blockedNames = string.Join(", ", blockedEntries.Select(v => $"{v.Name} ({v.CNIC})"));
+                ModelState.AddModelError("", $"The following CNIC(s) are blocked and cannot enter the premises: {blockedNames}");
+                return View(model);
+            }
 
             // Create all visitors
             foreach (var visitorModel in model.Visitors)
             {
+                string employeeName = userName ?? "";
+
+                if (isSectionOfficer && visitorModel.DepartmentEmployeeId.HasValue)
+                {
+                    var deptEmp = _context.DepartmentEmployees.FirstOrDefault(de => de.Id == visitorModel.DepartmentEmployeeId);
+                    if (deptEmp != null)
+                    {
+                        employeeName = deptEmp.Name;
+                    }
+                }
+
                 var visitor = new Visitor
                 {
                     Name = visitorModel.Name,
                     CNIC = visitorModel.CNIC,
                     Phone = visitorModel.Phone,
                     Purpose = visitorModel.Purpose,
-                    ExpectedTime = visitorModel.ExpectedTime,
+                    ExpectedTime = visitorModel.ExpectedTime == default ? DateTime.Now : visitorModel.ExpectedTime,
                     HasVehicle = visitorModel.HasVehicle,
                     VehicleNumber = visitorModel.VehicleNumber,
                     VehicleType = visitorModel.VehicleType,
+                    DepartmentId = visitorModel.DepartmentId,
+                    DepartmentEmployeeId = visitorModel.DepartmentEmployeeId,
                     EmployeeId = userId,
-                    EmployeeName = userName ?? "",
+                    EmployeeName = employeeName,
                     Status = "Pending",
+                    IsUrgent = false,
                     RequestCreatedAt = DateTime.Now
                 };
 
@@ -302,15 +429,16 @@ namespace VisitorManagementSystemMoD.Controllers
                 return RedirectToAction("Index", "Dashboard");
             }
 
+            var today = DateTime.Today;
             var query = _context.Visitors
                 .Include(v => v.Employee)
-                .Where(v => v.Status == "Pending")
+                .Where(v => v.Status == "Pending" && v.RequestCreatedAt.Date == today)
                 .OrderByDescending(v => v.RequestCreatedAt);
 
             var visitors = entries == -1 ? query.ToList() : query.Take(entries).ToList();
 
             ViewBag.Entries = entries;
-            ViewBag.TotalCount = _context.Visitors.Count(v => v.Status == "Pending");
+            ViewBag.TotalCount = _context.Visitors.Count(v => v.Status == "Pending" && v.RequestCreatedAt.Date == today);
             return View(visitors);
         }
 
@@ -554,6 +682,12 @@ namespace VisitorManagementSystemMoD.Controllers
             visitor.CheckInTime = DateTime.Now;
             visitor.UpdatedAt = DateTime.Now;
 
+            // Update CNIC if provided by reception
+            if (!string.IsNullOrWhiteSpace(request.Cnic))
+            {
+                visitor.CNIC = request.Cnic;
+            }
+
             _context.SaveChanges();
 
             return Json(new { success = true, message = "Visitor checked in successfully" });
@@ -746,10 +880,51 @@ namespace VisitorManagementSystemMoD.Controllers
                 checkOutTime = visitor.CheckOutTime?.ToString("MMM dd, yyyy h:mm tt"),
                 hasVehicle = visitor.HasVehicle,
                 vehicleNumber = visitor.VehicleNumber,
-                vehicleType = visitor.VehicleType
+                vehicleType = visitor.VehicleType,
+                isUrgent = visitor.IsUrgent,
+                requestCreatedAt = visitor.RequestCreatedAt.ToString("MMM dd, yyyy h:mm tt")
             };
 
             return Json(new { success = true, data = visitorData });
+        }
+
+        // AJAX: Check if a CNIC is blocked
+        [HttpGet]
+        public IActionResult CheckBlockedCnic(string cnic)
+        {
+            if (!CheckAuthentication())
+            {
+                return Json(new { success = false, message = "Not authenticated" });
+            }
+
+            if (string.IsNullOrWhiteSpace(cnic))
+            {
+                return Json(new { success = true, isBlocked = false });
+            }
+
+            var cnicDigits = Regex.Replace(cnic, @"\D", "");
+            var isBlocked = _context.BlockedVisitors
+                .Where(b => b.IsActive)
+                .AsEnumerable()
+                .Any(b => Regex.Replace(b.CNIC, @"\D", "") == cnicDigits);
+
+            if (isBlocked)
+            {
+                var blockedRecord = _context.BlockedVisitors
+                    .Where(b => b.IsActive)
+                    .AsEnumerable()
+                    .FirstOrDefault(b => Regex.Replace(b.CNIC, @"\D", "") == cnicDigits);
+
+                return Json(new
+                {
+                    success = true,
+                    isBlocked = true,
+                    blockedName = blockedRecord?.Name,
+                    reason = blockedRecord?.Reason ?? "No reason provided"
+                });
+            }
+
+            return Json(new { success = true, isBlocked = false });
         }
     }
 
@@ -773,6 +948,7 @@ namespace VisitorManagementSystemMoD.Controllers
     public class CheckInRequest
     {
         public int Id { get; set; }
+        public string? Cnic { get; set; }
     }
 
     public class CheckOutRequest

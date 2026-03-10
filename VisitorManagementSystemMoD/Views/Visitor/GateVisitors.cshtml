@@ -57,6 +57,10 @@
                                 <div class="d-flex align-items-center gap-2 mb-1">
                                     <h6 class="mb-0 fw-bold">@visitor.Name</h6>
                                     <span class="badge bg-warning text-dark">Awaiting</span>
+                                    @if (visitor.IsUrgent)
+                                    {
+                                        <span class="badge bg-danger"><i class="fas fa-bolt me-1"></i>Urgent</span>
+                                    }
                                     @if (visitor.HasVehicle)
                                     {
                                         <span class="badge bg-info"><i class="fas fa-car me-1"></i>@visitor.VehicleNumber</span>
@@ -65,7 +69,10 @@
                                 <div class="d-flex gap-4 text-muted small">
                                     <span><i class="fas fa-user me-1"></i>Host: @visitor.EmployeeName</span>
                                     <span><i class="fas fa-clock me-1"></i>Expected: @visitor.ExpectedTime.ToString("MMM dd, h:mm tt")</span>
-                                    <span><i class="fas fa-id-card me-1"></i>@visitor.CNIC</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2 mt-2">
+                                    <label class="form-label mb-0 small fw-semibold"><i class="fas fa-id-card me-1"></i>CNIC:</label>
+                                    <input type="text" id="cnic-@visitor.Id" class="form-control form-control-sm" style="max-width: 200px;" value="@visitor.CNIC" placeholder="Enter CNIC" />
                                 </div>
                             </div>
 
@@ -196,11 +203,12 @@ else
 
         function checkInVisitor(id, name) {
             if (confirm(`Check in ${name}?`)) {
-                console.log('Checking in visitor ID:', id); // Debug log
+                var cnic = document.getElementById('cnic-' + id)?.value?.trim() || '';
+                console.log('Checking in visitor ID:', id, 'CNIC:', cnic);
                 fetch('/Visitor/CheckIn', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: id })
+                    body: JSON.stringify({ id: id, cnic: cnic })
                 })
                     .then(response => {
                         console.log('Check-in response status:', response.status); // Debug log

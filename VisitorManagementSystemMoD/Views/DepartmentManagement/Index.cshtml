@@ -196,17 +196,16 @@
 @section Scripts {
     <script>
         function deleteDepartment(id, name, userCount, visitorCount) {
+            var warning = 'Are you sure you want to delete the department "' + name + '"?';
             if (userCount > 0 || visitorCount > 0) {
-                alert('Cannot delete department "' + name + '".\n\nThis department has ' + userCount + ' user(s) and ' + visitorCount + ' visitor(s) associated with it.\n\nPlease reassign or remove them first.');
-                return;
+                warning += '\n\nThis department has ' + userCount + ' user(s) and ' + visitorCount + ' visitor(s). They will be unassigned from this department.';
             }
+            warning += '\n\nThis action cannot be undone.';
 
-            if (confirm('Are you sure you want to delete the department "' + name + '"?\n\nThis action cannot be undone.')) {
+            if (confirm(warning)) {
                 $.ajax({
-                    url: '@Url.Action("Delete", "DepartmentManagement")',
+                    url: '@Url.Action("Delete", "DepartmentManagement")' + '?id=' + id,
                     type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ id: id }),
                     success: function (response) {
                         if (response.success) {
                             window.location.reload();

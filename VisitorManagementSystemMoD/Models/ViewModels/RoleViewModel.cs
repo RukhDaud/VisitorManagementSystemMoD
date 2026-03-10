@@ -10,5 +10,8 @@ namespace VisitorManagementSystemMoD.Models.ViewModels
         [StringLength(50, ErrorMessage = "Role name cannot exceed 50 characters")]
         [Display(Name = "Role Name")]
         public string Name { get; set; } = string.Empty;
+
+        [Display(Name = "High Priority User")]
+        public bool IsHighPriority { get; set; }
     }
 }

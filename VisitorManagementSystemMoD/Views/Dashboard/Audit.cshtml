@@ -74,12 +74,25 @@
                 <label class="form-label small fw-semibold mb-1">To</label>
                 <input type="date" id="auditDateTo" class="form-control form-control-sm">
             </div>
-            <div class="col-md-1">
-                <button class="btn btn-outline-secondary btn-sm w-100" onclick="resetFilters()" title="Reset Filters">
+            <div class="col-md-1 d-flex gap-1">
+                <button class="btn btn-outline-secondary btn-sm flex-fill" onclick="resetFilters()" title="Reset Filters">
                     <i class="fas fa-undo"></i>
                 </button>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- HP Filter -->
+<div class="mb-3" id="hpFilterBar" style="display:none;">
+    <div class="alert alert-danger d-flex align-items-center justify-content-between py-2 mb-0 border-danger" style="background: linear-gradient(135deg, #fff5f5, #ffe3e3);">
+        <div>
+            <i class="fas fa-bolt text-danger me-2"></i>
+            <strong id="hpCountText">0</strong> <span class="text-danger fw-semibold">High Priority</span> visitor(s) found
+        </div>
+        <button class="btn btn-outline-danger btn-sm" id="hpToggleBtn" onclick="toggleHpFilter()">
+            <i class="fas fa-filter me-1"></i>Show High Priority Only
+        </button>
     </div>
 </div>
 
@@ -90,6 +103,14 @@
             <div class="card-body p-2">
                 <p class="text-muted small mb-0">Total Records</p>
                 <h4 class="fw-bold mb-0 text-primary" id="summaryTotal">0</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card border-0 shadow-sm text-center py-2" style="border-left: 3px solid #dc3545 !important;">
+            <div class="card-body p-2">
+                <p class="text-muted small mb-0"><i class="fas fa-bolt text-danger me-1"></i>High Priority</p>
+                <h4 class="fw-bold mb-0 text-danger" id="summaryHP">0</h4>
             </div>
         </div>
     </div>
@@ -182,6 +203,7 @@
     <script>
         var auditData = [];
         var debounceTimer;
+        var hpFilterActive = false;
 
         function loadAuditData() {
             var params = {
@@ -201,6 +223,12 @@
                 renderTable(auditData);
                 updateSummary(auditData);
                 $('#auditRecordCount').text('Showing ' + res.totalCount + ' record(s)');
+
+                if (hpFilterActive) {
+                    $('#auditTableBody tr[data-hp]').each(function () {
+                        $(this).toggle($(this).data('hp') === true);
+                    });
+                }
             }).fail(function () {
                 $('#auditTableBody').html('<tr><td colspan="14" class="text-center py-5 text-danger"><i class="fas fa-exclamation-triangle fa-2x mb-3 d-block"></i>Failed to load audit data. Please try again.</td></tr>');
                 $('#auditRecordCount').text('Error loading data');
@@ -225,9 +253,12 @@
                     default: statusBadge = '<span class="badge bg-secondary">' + v.status + '</span>'; break;
                 }
 
-                html += '<tr>' +
+                var hpBadge = v.isUrgent ? ' <span class="badge bg-danger" style="font-size:0.65rem;"><i class="fas fa-bolt me-1"></i>High Priority</span>' : '';
+                var rowStyle = v.isUrgent ? ' style="border-left: 3px solid #dc3545; background-color: #fff5f5;"' : '';
+
+                html += '<tr data-hp="' + (v.isUrgent ? 'true' : 'false') + '"' + rowStyle + '>' +
                     '<td class="px-3 py-2 text-muted">' + (i + 1) + '</td>' +
-                    '<td class="px-3 py-2 fw-semibold">' + v.name + '</td>' +
+                    '<td class="px-3 py-2 fw-semibold">' + v.name + hpBadge + '</td>' +
                     '<td class="px-3 py-2">' + v.cnic + '</td>' +
                     '<td class="px-3 py-2">' + v.phone + '</td>' +
                     '<td class="px-3 py-2">' + v.purpose + '</td>' +
@@ -246,12 +277,21 @@
         }
 
         function updateSummary(data) {
+            var hpCount = data.filter(d => d.isUrgent).length;
             $('#summaryTotal').text(data.length);
+            $('#summaryHP').text(hpCount);
             $('#summaryPending').text(data.filter(d => d.status === 'Pending').length);
             $('#summaryApproved').text(data.filter(d => d.status === 'Approved').length);
             $('#summaryRejected').text(data.filter(d => d.status === 'Rejected').length);
             $('#summaryCheckedIn').text(data.filter(d => d.status === 'Checked In').length);
             $('#summaryCheckedOut').text(data.filter(d => d.status === 'Checked Out').length);
+
+            if (hpCount > 0) {
+                $('#hpFilterBar').show();
+                $('#hpCountText').text(hpCount);
+            } else {
+                $('#hpFilterBar').hide();
+            }
         }
 
         function resetFilters() {
@@ -260,12 +300,29 @@
             $('#auditDepartment').val('0');
             $('#auditDateFrom').val('');
             $('#auditDateTo').val('');
+            hpFilterActive = false;
+            $('#hpToggleBtn').removeClass('btn-danger').addClass('btn-outline-danger').html('<i class="fas fa-filter me-1"></i>Show High Priority Only');
             loadAuditData();
         }
 
+        function toggleHpFilter() {
+            hpFilterActive = !hpFilterActive;
+            var rows = $('#auditTableBody tr[data-hp]');
+            if (hpFilterActive) {
+                rows.each(function () {
+                    $(this).toggle($(this).data('hp') === true);
+                });
+                $('#hpToggleBtn').removeClass('btn-outline-danger').addClass('btn-danger').html('<i class="fas fa-filter me-1"></i>Show All Visitors');
+            } else {
+                rows.show();
+                $('#hpToggleBtn').removeClass('btn-danger').addClass('btn-outline-danger').html('<i class="fas fa-filter me-1"></i>Show High Priority Only');
+            }
+        }
+
         function getExportRows() {
-            return auditData.map(function (v) {
-                return [v.name, v.cnic, v.phone, v.purpose, v.employeeName, v.departmentName,
+            var exportData = hpFilterActive ? auditData.filter(function(v) { return v.isUrgent; }) : auditData;
+            return exportData.map(function (v) {
+                return [v.name + (v.isUrgent ? ' [HP]' : ''), v.cnic, v.phone, v.purpose, v.employeeName, v.departmentName,
                         v.expectedTime, v.status, v.approvedByName, v.checkInTime, v.checkOutTime,
                         v.hasVehicle ? v.vehicleNumber : 'None', v.requestCreatedAt];
             });

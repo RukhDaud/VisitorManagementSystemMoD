@@ -76,6 +76,7 @@ namespace VisitorManagementSystemMoD.Controllers
             var role = new Role
             {
                 Name = model.Name,
+                IsHighPriority = model.IsHighPriority,
                 CreatedAt = DateTime.Now
             };
 
@@ -105,6 +106,7 @@ namespace VisitorManagementSystemMoD.Controllers
             var role = new Role
             {
                 Name = dto.Name,
+                IsHighPriority = dto.IsHighPriority,
                 CreatedAt = DateTime.Now
             };
 
@@ -117,6 +119,7 @@ namespace VisitorManagementSystemMoD.Controllers
         public class CreateRoleAjaxDto
         {
             public string Name { get; set; } = string.Empty;
+            public bool IsHighPriority { get; set; }
         }
 
         // GET: RoleManagement/Edit/5
@@ -144,7 +147,8 @@ namespace VisitorManagementSystemMoD.Controllers
             var model = new RoleViewModel
             {
                 Id = role.Id,
-                Name = role.Name
+                Name = role.Name,
+                IsHighPriority = role.IsHighPriority
             };
 
             // Get user count for this role
@@ -196,6 +200,7 @@ namespace VisitorManagementSystemMoD.Controllers
             }
 
             role.Name = model.Name;
+            role.IsHighPriority = model.IsHighPriority;
             role.UpdatedAt = DateTime.Now;
 
             _context.SaveChanges();
@@ -225,16 +230,23 @@ namespace VisitorManagementSystemMoD.Controllers
                 return Json(new { success = false, message = "Cannot delete SuperAdmin role" });
             }
 
-            // Check if role has users
-            if (role.Users.Any())
+            // Unassign role from all users before deleting
+            var affectedUsers = role.Users.Count;
+            foreach (var user in role.Users)
             {
-                return Json(new { success = false, message = $"Cannot delete role. {role.Users.Count} user(s) are assigned to this role." });
+                user.RoleId = null;
             }
 
             _context.Roles.Remove(role);
             _context.SaveChanges();
 
-            return Json(new { success = true, message = $"Role '{role.Name}' deleted successfully" });
+            var msg = $"Role '{role.Name}' deleted successfully";
+            if (affectedUsers > 0)
+            {
+                msg += $". {affectedUsers} user(s) have been unassigned from this role.";
+            }
+
+            return Json(new { success = true, message = msg });
         }
     }
 }

@@ -9,6 +9,7 @@
     var pendingCount = Model.Count(v => v.Status == "Pending");
     var approvedCount = Model.Count(v => v.Status == "Approved");
     var rejectedCount = Model.Count(v => v.Status == "Rejected");
+    var hpCount = Model.Count(v => v.IsUrgent);
 }
 
 @section Breadcrumb {
@@ -75,6 +76,20 @@
     </div>
 </div>
 
+@if (hpCount > 0)
+{
+    <div class="alert mb-4 d-flex align-items-center justify-content-between py-2" style="background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 2px solid #fca5a5; border-radius: 10px;">
+        <div>
+            <i class="fas fa-bolt me-2 text-danger"></i>
+            <span class="fw-bold text-danger">@hpCount High Priority</span>
+            <span class="text-danger"> visitor(s) in current view</span>
+        </div>
+        <button class="btn btn-sm btn-outline-danger" id="hpFilterBtn" onclick="toggleHpFilter()">
+            <i class="fas fa-filter me-1"></i>Show High Priority Only
+        </button>
+    </div>
+}
+
 <!-- Filters -->
 <div class="card shadow-sm mb-4 border-0">
     <div class="card-body py-3">
@@ -136,17 +151,25 @@
                         @foreach (var visitor in Model)
                         {
                             <tr class="visitor-row"
-                                data-name="@visitor.Name.ToLower()"
-                                data-cnic="@visitor.CNIC.ToLower()"
-                                data-phone="@visitor.Phone.ToLower()"
-                                data-host="@visitor.EmployeeName.ToLower()">
+                                data-name="@((visitor.Name ?? "").ToLower())"
+                                data-cnic="@((visitor.CNIC ?? "").ToLower())"
+                                data-phone="@((visitor.Phone ?? "").ToLower())"
+                                data-host="@((visitor.EmployeeName ?? "").ToLower())"
+                                data-hp="@visitor.IsUrgent.ToString().ToLower()"
+                                style="@(visitor.IsUrgent ? "background: #fffbfb; border-left: 4px solid #ef4444;" : "")">
                                 <td class="px-3 py-2">
                                     <div class="d-flex align-items-center gap-2">
                                         <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-semibold"
-                                             style="width:32px;height:32px;font-size:0.75rem;background:linear-gradient(135deg,#60a5fa,#a78bfa);">
-                                            @visitor.Name.Substring(0, 1).ToUpper()
+                                             style="width:32px;height:32px;font-size:0.75rem;background:@(visitor.IsUrgent ? "linear-gradient(135deg,#ef4444,#dc2626)" : "linear-gradient(135deg,#60a5fa,#a78bfa)");">
+                                            @((visitor.Name ?? "?").Substring(0, 1).ToUpper())
                                         </div>
-                                        <span class="fw-semibold">@visitor.Name</span>
+                                        <div>
+                                            <span class="fw-semibold">@visitor.Name</span>
+                                            @if (visitor.IsUrgent)
+                                            {
+                                                <span class="badge bg-danger ms-1" style="font-size:0.6rem;"><i class="fas fa-bolt me-1"></i>High Priority</span>
+                                            }
+                                        </div>
                                     </div>
                                 </td>
                                 <td class="px-3 py-2 text-muted">@visitor.CNIC</td>
@@ -224,6 +247,23 @@
             window.location.search = params.toString();
         }
 
+        var hpFilterActive = false;
+
+        function toggleHpFilter() {
+            hpFilterActive = !hpFilterActive;
+            var btn = document.getElementById('hpFilterBtn');
+            if (hpFilterActive) {
+                btn.classList.remove('btn-outline-danger');
+                btn.classList.add('btn-danger');
+                btn.innerHTML = '<i class="fas fa-filter me-1"></i>Show All Visitors';
+            } else {
+                btn.classList.remove('btn-danger');
+                btn.classList.add('btn-outline-danger');
+                btn.innerHTML = '<i class="fas fa-filter me-1"></i>Show High Priority Only';
+            }
+            filterVisitors();
+        }
+
         function filterVisitors() {
             var search = document.getElementById('visitorSearch').value.toLowerCase();
             var rows = document.querySelectorAll('.visitor-row');
@@ -233,9 +273,12 @@
                 var cnic = row.getAttribute('data-cnic');
                 var phone = row.getAttribute('data-phone');
                 var host = row.getAttribute('data-host');
-                var match = name.includes(search) || cnic.includes(search) || phone.includes(search) || host.includes(search);
-                row.style.display = match ? '' : 'none';
-                if (match) visible++;
+                var isHp = row.getAttribute('data-hp') === 'true';
+                var matchSearch = name.includes(search) || cnic.includes(search) || phone.includes(search) || host.includes(search);
+                var matchHp = !hpFilterActive || isHp;
+                var show = matchSearch && matchHp;
+                row.style.display = show ? '' : 'none';
+                if (show) visible++;
             });
             document.getElementById('visitorRecordCount').textContent = visible + ' visitor(s)';
         }

@@ -12,18 +12,15 @@ namespace VisitorManagementSystemMoD.Models
         [StringLength(100)]
         public string Name { get; set; } = string.Empty;
 
-        [Required]
         [StringLength(20)]
         [Display(Name = "CNIC")]
-        public string CNIC { get; set; } = string.Empty;
+        public string? CNIC { get; set; }
 
-        [Required]
         [StringLength(20)]
-        public string Phone { get; set; } = string.Empty;
+        public string? Phone { get; set; }
 
-        [Required]
         [StringLength(500)]
-        public string Purpose { get; set; } = string.Empty;
+        public string? Purpose { get; set; }
 
         [Required]
         public DateTime ExpectedTime { get; set; }
@@ -55,6 +52,12 @@ namespace VisitorManagementSystemMoD.Models
         [ForeignKey(nameof(DepartmentId))]
         public Department? Department { get; set; }
 
+        // Department Employee on whose behalf the request is created (SO flow)
+        public int? DepartmentEmployeeId { get; set; }
+
+        [ForeignKey(nameof(DepartmentEmployeeId))]
+        public DepartmentEmployee? DepartmentEmployee { get; set; }
+
         // Security Officer approval info
         public int? ApprovedById { get; set; }
 
@@ -72,6 +75,9 @@ namespace VisitorManagementSystemMoD.Models
         // Check-in/Check-out info
         public DateTime? CheckInTime { get; set; }
         public DateTime? CheckOutTime { get; set; }
+
+        // Urgency flag (set when employee's role is high priority)
+        public bool IsUrgent { get; set; } = false;
 
         // Timestamps
         public DateTime RequestCreatedAt { get; set; } = DateTime.Now;

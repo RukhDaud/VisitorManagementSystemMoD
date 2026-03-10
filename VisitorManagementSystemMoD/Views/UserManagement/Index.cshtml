@@ -510,10 +510,8 @@
             const action = isActive ? 'deactivate' : 'activate';
             if (confirm('Are you sure you want to ' + action + ' user "' + name + '"?')) {
                 $.ajax({
-                    url: '@Url.Action("ToggleActive", "UserManagement")',
+                    url: '@Url.Action("ToggleActive", "UserManagement")' + '?id=' + id,
                     type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ id: id }),
                     success: function (response) {
                         if (response.success) {
                             window.location.reload();
@@ -529,12 +527,10 @@
         }
 
         function deleteUser(id, name) {
-            if (confirm('Are you sure you want to delete user "' + name + '"?\n\nThis action cannot be undone.')) {
+            if (confirm('Are you sure you want to delete user "' + name + '"?\n\nAll visitor requests, alerts, and related records created by this user will also be deleted.\n\nThis action cannot be undone.')) {
                 $.ajax({
-                    url: '@Url.Action("Delete", "UserManagement")',
+                    url: '@Url.Action("Delete", "UserManagement")' + '?id=' + id,
                     type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ id: id }),
                     success: function (response) {
                         if (response.success) {
                             window.location.reload();

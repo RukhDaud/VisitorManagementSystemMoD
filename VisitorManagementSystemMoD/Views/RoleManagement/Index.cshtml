@@ -369,12 +369,10 @@
 @section Scripts {
     <script>
         function deleteRole(id, name) {
-            if (confirm('Are you sure you want to delete the role "' + name + '"?\n\nThis action cannot be undone. Users assigned to this role will lose their access.')) {
+            if (confirm('Are you sure you want to delete the role "' + name + '"?\n\nAll users assigned to this role will be unassigned.\n\nThis action cannot be undone.')) {
                 $.ajax({
-                    url: '@Url.Action("Delete", "RoleManagement")',
+                    url: '@Url.Action("Delete", "RoleManagement")' + '?id=' + id,
                     type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ id: id }),
                     success: function (response) {
                         if (response.success) {
                             window.location.reload();
